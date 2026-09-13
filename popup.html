@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Copy Stack</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <header class="header">
+      <div>
+        <p class="eyebrow">Clipboard history</p>
+        <h1>Copy Stack</h1>
+      </div>
+      <span id="entry-count" class="count">0 / 100</span>
+    </header>
+
+    <main>
+      <p id="empty-state" class="empty-state">
+        Copy text on a web page and it will appear here.
+      </p>
+
+      <section id="current-section" hidden>
+        <h2>Current</h2>
+        <div id="current-entry"></div>
+      </section>
+
+      <section id="history-section" hidden>
+        <h2>Previous</h2>
+        <div id="history-list" class="history-list"></div>
+      </section>
+    </main>
+
+    <p id="status" class="status" role="status" aria-live="polite"></p>
+    <script src="dist/popup.js"></script>
+  </body>
+</html>
