@@ -1,3 +1,5 @@
+import { CLIPBOARD_STORAGE_KEY, getClipboardEntries } from "./storage";
+
 (() => {
   const countElement = document.querySelector<HTMLSpanElement>("#entry-count")!;
   const currentSection = document.querySelector<HTMLElement>("#current-section")!;

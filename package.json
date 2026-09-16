@@ -2,12 +2,16 @@
   "name": "chrome-copy-stack",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
-    "build": "tsc",
+    "dev": "vite",
+    "build": "vite build",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
+    "@crxjs/vite-plugin": "^2.7.1",
     "@types/chrome": "^0.2.9",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vite": "^8.3.0"
   }
 }
