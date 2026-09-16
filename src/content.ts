@@ -1,13 +1,21 @@
 (() => {
-  function getInputSelection(element: HTMLInputElement | HTMLTextAreaElement): string {
-    const selectionStart = element.selectionStart;
-    const selectionEnd = element.selectionEnd;
+  function getInputSelection(element: HTMLInputElement | HTMLTextAreaElement): string | null {
+    try {
+      const selectionStart = element.selectionStart;
+      const selectionEnd = element.selectionEnd;
 
-    if (selectionStart === null || selectionEnd === null) {
-      return "";
+      if (selectionStart === null || selectionEnd === null) {
+        return null;
+      }
+
+      return element.value.slice(selectionStart, selectionEnd);
+    } catch (error: unknown) {
+      if (!(error instanceof DOMException)) {
+        console.error("Failed to read input selection:", error);
+      }
+
+      return null;
     }
-
-    return element.value.slice(selectionStart, selectionEnd);
   }
 
   function getCopiedText(event: ClipboardEvent): string {
@@ -18,7 +26,11 @@
     }
 
     if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
-      return getInputSelection(event.target);
+      const inputSelection = getInputSelection(event.target);
+
+      if (inputSelection !== null) {
+        return inputSelection;
+      }
     }
 
     return window.getSelection()?.toString() ?? "";

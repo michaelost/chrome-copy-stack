@@ -11,3 +11,5 @@ type ExtensionMessage =
 type ExtensionResponse =
   | { ok: true }
   | { ok: false; error: string };
+
+declare function importScripts(...urls: string[]): void;

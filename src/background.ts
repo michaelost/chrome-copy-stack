@@ -1,6 +1,9 @@
+importScripts("storage.js");
+
 (() => {
-  const STORAGE_KEY = "clipboardEntries";
   const MAX_ENTRIES = 100;
+  const MAX_TEXT_LENGTH = 20_000;
+  let storageUpdateQueue: Promise<void> = Promise.resolve();
 
   function isExtensionMessage(value: unknown): value is ExtensionMessage {
     if (typeof value !== "object" || value === null) {
@@ -15,24 +18,12 @@
     );
   }
 
-  async function getEntries(): Promise<ClipboardEntry[]> {
-    const result = await chrome.storage.local.get({
-      [STORAGE_KEY]: [] as ClipboardEntry[],
-    });
-
-    return result[STORAGE_KEY] as ClipboardEntry[];
-  }
-
-  async function saveEntries(entries: ClipboardEntry[]): Promise<void> {
-    await chrome.storage.local.set({ [STORAGE_KEY]: entries });
-  }
-
   async function addEntry(text: string): Promise<void> {
-    if (text.length === 0) {
+    if (text.trim().length === 0 || text.length > MAX_TEXT_LENGTH) {
       return;
     }
 
-    const entries = await getEntries();
+    const entries = await getClipboardEntries();
     const entry: ClipboardEntry = {
       id: crypto.randomUUID(),
       text,
@@ -43,11 +34,11 @@
       ...entries.filter((savedEntry) => savedEntry.text !== text),
     ].slice(0, MAX_ENTRIES);
 
-    await saveEntries(nextEntries);
+    await saveClipboardEntries(nextEntries);
   }
 
   async function activateEntry(id: string): Promise<void> {
-    const entries = await getEntries();
+    const entries = await getClipboardEntries();
     const selectedEntry = entries.find((entry) => entry.id === id);
 
     if (!selectedEntry) {
@@ -59,16 +50,27 @@
       ...entries.filter((entry) => entry.id !== id),
     ];
 
-    await saveEntries(nextEntries);
+    await saveClipboardEntries(nextEntries);
   }
 
-  async function handleMessage(message: ExtensionMessage): Promise<void> {
-    if (message.type === "ADD_CLIPBOARD_ENTRY") {
-      await addEntry(message.text);
-      return;
-    }
+  function enqueueStorageUpdate(update: () => Promise<void>): Promise<void> {
+    const queuedUpdate = storageUpdateQueue.then(update);
+    storageUpdateQueue = queuedUpdate.then(
+      () => undefined,
+      () => undefined,
+    );
 
-    await activateEntry(message.id);
+    return queuedUpdate;
+  }
+
+  function handleMessage(message: ExtensionMessage): Promise<void> {
+    return enqueueStorageUpdate(() => {
+      if (message.type === "ADD_CLIPBOARD_ENTRY") {
+        return addEntry(message.text);
+      }
+
+      return activateEntry(message.id);
+    });
   }
 
   chrome.runtime.onMessage.addListener(
