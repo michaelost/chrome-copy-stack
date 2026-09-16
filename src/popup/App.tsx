@@ -2,7 +2,7 @@ import { EntryButton } from "./EntryButton";
 import { useClipboardEntries } from "./useClipboardEntries";
 
 export function App() {
-  const { entries, status, copyEntry } = useClipboardEntries();
+  const { entries, status, copyEntry, removeEntry, clearEntries } = useClipboardEntries();
   const [currentEntry, ...previousEntries] = entries;
   const statusClassName = status.isError ? "status status--error" : "status";
 
@@ -13,7 +13,14 @@ export function App() {
           <p className="eyebrow">Clipboard history</p>
           <h1>Copy Stack</h1>
         </div>
-        <span className="count">{entries.length} / 100</span>
+        <div className="header__actions">
+          <span className="count">{entries.length} / 100</span>
+          {entries.length > 0 && (
+            <button type="button" className="clear-all" onClick={clearEntries}>
+              Clear all
+            </button>
+          )}
+        </div>
       </header>
 
       <main>
@@ -24,7 +31,12 @@ export function App() {
         {currentEntry && (
           <section>
             <h2>Current</h2>
-            <EntryButton entry={currentEntry} variant="current" onCopy={copyEntry} />
+            <EntryButton
+              entry={currentEntry}
+              variant="current"
+              onCopy={copyEntry}
+              onRemove={removeEntry}
+            />
           </section>
         )}
 
@@ -33,7 +45,13 @@ export function App() {
             <h2>Previous</h2>
             <div className="history-list">
               {previousEntries.map((entry) => (
-                <EntryButton key={entry.id} entry={entry} variant="history" onCopy={copyEntry} />
+                <EntryButton
+                  key={entry.id}
+                  entry={entry}
+                  variant="history"
+                  onCopy={copyEntry}
+                  onRemove={removeEntry}
+                />
               ))}
             </div>
           </section>

@@ -14,7 +14,9 @@ import { getClipboardEntries, saveClipboardEntries } from "./storage";
 
     return (
       (message.type === "ADD_CLIPBOARD_ENTRY" && typeof message.text === "string") ||
-      (message.type === "ACTIVATE_CLIPBOARD_ENTRY" && typeof message.id === "string")
+      (message.type === "ACTIVATE_CLIPBOARD_ENTRY" && typeof message.id === "string") ||
+      (message.type === "REMOVE_CLIPBOARD_ENTRY" && typeof message.id === "string") ||
+      message.type === "CLEAR_CLIPBOARD_ENTRIES"
     );
   }
 
@@ -53,6 +55,17 @@ import { getClipboardEntries, saveClipboardEntries } from "./storage";
     await saveClipboardEntries(nextEntries);
   }
 
+  async function removeEntry(id: string): Promise<void> {
+    const entries = await getClipboardEntries();
+    const nextEntries = entries.filter((entry) => entry.id !== id);
+
+    await saveClipboardEntries(nextEntries);
+  }
+
+  async function clearEntries(): Promise<void> {
+    await saveClipboardEntries([]);
+  }
+
   function enqueueStorageUpdate(update: () => Promise<void>): Promise<void> {
     const queuedUpdate = storageUpdateQueue.then(update);
     storageUpdateQueue = queuedUpdate.then(
@@ -65,11 +78,18 @@ import { getClipboardEntries, saveClipboardEntries } from "./storage";
 
   function handleMessage(message: ExtensionMessage): Promise<void> {
     return enqueueStorageUpdate(() => {
-      if (message.type === "ADD_CLIPBOARD_ENTRY") {
-        return addEntry(message.text);
+      switch (message.type) {
+        case "ADD_CLIPBOARD_ENTRY":
+          return addEntry(message.text);
+        case "ACTIVATE_CLIPBOARD_ENTRY":
+          return activateEntry(message.id);
+        case "REMOVE_CLIPBOARD_ENTRY":
+          return removeEntry(message.id);
+        case "CLEAR_CLIPBOARD_ENTRIES":
+          return clearEntries();
+        default:
+          return message satisfies never;
       }
-
-      return activateEntry(message.id);
     });
   }
 

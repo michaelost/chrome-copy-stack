@@ -77,4 +77,71 @@ describe("useClipboardEntries", () => {
       isError: true,
     });
   });
+
+  it("removes an entry by sending the remove message", async () => {
+    setStoredEntries([entryA]);
+
+    const { result } = renderHook(() => useClipboardEntries());
+    await waitFor(() => expect(result.current.entries).toEqual([entryA]));
+
+    await act(async () => {
+      await result.current.removeEntry(entryA);
+    });
+
+    expect(getChromeMock().runtime.sendMessage).toHaveBeenCalledWith({
+      type: "REMOVE_CLIPBOARD_ENTRY",
+      id: "a",
+    });
+    expect(result.current.status).toEqual({ message: "", isError: false });
+  });
+
+  it("shows an error status when removing an entry fails", async () => {
+    setStoredEntries([entryA]);
+    getChromeMock().runtime.sendMessage.mockResolvedValue({ ok: false, error: "boom" });
+
+    const { result } = renderHook(() => useClipboardEntries());
+    await waitFor(() => expect(result.current.entries).toEqual([entryA]));
+
+    await act(async () => {
+      await result.current.removeEntry(entryA);
+    });
+
+    expect(result.current.status).toEqual({
+      message: "Could not remove this item",
+      isError: true,
+    });
+  });
+
+  it("clears all entries by sending the clear message", async () => {
+    setStoredEntries([entryA, entryB]);
+
+    const { result } = renderHook(() => useClipboardEntries());
+    await waitFor(() => expect(result.current.entries).toEqual([entryA, entryB]));
+
+    await act(async () => {
+      await result.current.clearEntries();
+    });
+
+    expect(getChromeMock().runtime.sendMessage).toHaveBeenCalledWith({
+      type: "CLEAR_CLIPBOARD_ENTRIES",
+    });
+    expect(result.current.status).toEqual({ message: "", isError: false });
+  });
+
+  it("shows an error status when clearing entries fails", async () => {
+    setStoredEntries([entryA]);
+    getChromeMock().runtime.sendMessage.mockResolvedValue({ ok: false, error: "boom" });
+
+    const { result } = renderHook(() => useClipboardEntries());
+    await waitFor(() => expect(result.current.entries).toEqual([entryA]));
+
+    await act(async () => {
+      await result.current.clearEntries();
+    });
+
+    expect(result.current.status).toEqual({
+      message: "Could not clear clipboard history",
+      isError: true,
+    });
+  });
 });

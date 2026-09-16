@@ -12,6 +12,8 @@ interface UseClipboardEntriesResult {
   entries: ClipboardEntry[];
   status: StatusState;
   copyEntry: (entry: ClipboardEntry) => Promise<void>;
+  removeEntry: (entry: ClipboardEntry) => Promise<void>;
+  clearEntries: () => Promise<void>;
 }
 
 export function useClipboardEntries(): UseClipboardEntriesResult {
@@ -85,5 +87,39 @@ export function useClipboardEntries(): UseClipboardEntriesResult {
     [showStatus],
   );
 
-  return { entries, status, copyEntry };
+  const removeEntry = useCallback(
+    async (entry: ClipboardEntry) => {
+      try {
+        const response = (await chrome.runtime.sendMessage({
+          type: "REMOVE_CLIPBOARD_ENTRY",
+          id: entry.id,
+        } satisfies ExtensionMessage)) as ExtensionResponse;
+
+        if (!response.ok) {
+          throw new Error(response.error);
+        }
+      } catch (error: unknown) {
+        console.error("Failed to remove clipboard entry:", error);
+        showStatus("Could not remove this item", true);
+      }
+    },
+    [showStatus],
+  );
+
+  const clearEntries = useCallback(async () => {
+    try {
+      const response = (await chrome.runtime.sendMessage({
+        type: "CLEAR_CLIPBOARD_ENTRIES",
+      } satisfies ExtensionMessage)) as ExtensionResponse;
+
+      if (!response.ok) {
+        throw new Error(response.error);
+      }
+    } catch (error: unknown) {
+      console.error("Failed to clear clipboard history:", error);
+      showStatus("Could not clear clipboard history", true);
+    }
+  }, [showStatus]);
+
+  return { entries, status, copyEntry, removeEntry, clearEntries };
 }
