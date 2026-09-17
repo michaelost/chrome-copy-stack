@@ -21,8 +21,12 @@ import { getClipboardEntries, saveClipboardEntries } from "./storage";
   }
 
   async function addEntry(text: string): Promise<void> {
-    if (text.trim().length === 0 || text.length > MAX_TEXT_LENGTH) {
+    if (text.trim().length === 0) {
       return;
+    }
+
+    if (text.length > MAX_TEXT_LENGTH) {
+      throw new Error("Clipboard text is too long to save");
     }
 
     const entries = await getClipboardEntries();

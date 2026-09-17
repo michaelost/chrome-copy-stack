@@ -46,7 +46,7 @@ Everything funnels through one `chrome.runtime.onMessage` listener in
 
 | Message | Sent by | Effect |
 |---|---|---|
-| `ADD_CLIPBOARD_ENTRY { text }` | `content.ts` on page copy; popup's "Add from clipboard" button | Adds a new entry at the top. If `text` already exists verbatim, the old copy is removed and the entry moves to the top instead of duplicating. No-ops silently if `text` is empty/whitespace or longer than `MAX_TEXT_LENGTH`. |
+| `ADD_CLIPBOARD_ENTRY { text }` | `content.ts` on page copy; popup's "Add from clipboard" button | Adds a new entry at the top. If `text` already exists verbatim, the old copy is removed and the entry moves to the top instead of duplicating. No-ops silently if `text` is empty/whitespace; responds with `{ok:false}` (surfaced as an error status in the popup) if `text` is longer than `MAX_TEXT_LENGTH`. |
 | `ACTIVATE_CLIPBOARD_ENTRY { id }` | Popup, clicking an entry | Moves that entry to the top with a fresh `copiedAt`. |
 | `REMOVE_CLIPBOARD_ENTRY { id }` | Popup, clicking an entry's delete button | Removes just that entry. |
 | `CLEAR_CLIPBOARD_ENTRIES` | Popup, "Clear all" button | Empties the entire list. |
