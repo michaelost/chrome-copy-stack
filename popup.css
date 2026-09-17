@@ -59,8 +59,15 @@ section + section {
   margin-top: 18px;
 }
 
-.count {
+.header__actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
   flex: 0 0 auto;
+  gap: 6px;
+}
+
+.count {
   padding: 5px 8px;
   border-radius: 999px;
   color: #475467;
@@ -69,23 +76,41 @@ section + section {
   font-weight: 700;
 }
 
+.clear-all {
+  padding: 0;
+  border: none;
+  background: none;
+  color: #b42318;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.clear-all:hover {
+  text-decoration: underline;
+}
+
+.clear-all:focus-visible {
+  outline: 2px solid #4169e1;
+  outline-offset: 2px;
+}
+
 .history-list {
   display: grid;
   gap: 8px;
 }
 
 .entry {
-  display: block;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
   width: 100%;
   padding: 11px 12px;
   border: 1px solid #d8deea;
   border-radius: 10px;
-  color: inherit;
   background: #ffffff;
   box-shadow: 0 1px 2px rgb(16 24 40 / 4%);
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
 }
 
 .entry:hover {
@@ -93,14 +118,54 @@ section + section {
   background: #fafbff;
 }
 
-.entry:focus-visible {
+.entry--current {
+  border-color: #8ca4ef;
+  background: #eef2ff;
+}
+
+.entry__copy {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  color: inherit;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.entry__copy:focus-visible {
   outline: 2px solid #4169e1;
   outline-offset: 2px;
 }
 
-.entry--current {
-  border-color: #8ca4ef;
-  background: #eef2ff;
+.entry__delete {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid #d8deea;
+  border-radius: 6px;
+  color: #667085;
+  background: #ffffff;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.entry__delete:hover {
+  border-color: #f0a8a1;
+  color: #b42318;
+  background: #fff5f4;
+}
+
+.entry__delete:focus-visible {
+  outline: 2px solid #4169e1;
+  outline-offset: 2px;
 }
 
 .entry__text {

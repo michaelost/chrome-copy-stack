@@ -71,4 +71,62 @@ describe("App", () => {
 
     expect(await screen.findByText("alpha")).toBeInTheDocument();
   });
+
+  it("does not show the clear-all control when there are no entries", async () => {
+    setStoredEntries([]);
+    render(<App />);
+
+    await screen.findByText("Copy text on a web page and it will appear here.");
+    expect(screen.queryByRole("button", { name: "Clear all" })).not.toBeInTheDocument();
+  });
+
+  it("removes a single entry without copying it", async () => {
+    setStoredEntries([entryA, entryB]);
+    render(<App />);
+    await screen.findByText("alpha");
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Remove this item" })[0]);
+
+    expect(getChromeMock().runtime.sendMessage).toHaveBeenCalledWith({
+      type: "REMOVE_CLIPBOARD_ENTRY",
+      id: "a",
+    });
+    expect(navigator.clipboard.writeText).not.toHaveBeenCalled();
+  });
+
+  it("shows an error status when removing an entry fails", async () => {
+    setStoredEntries([entryA]);
+    getChromeMock().runtime.sendMessage.mockResolvedValue({ ok: false, error: "boom" });
+    render(<App />);
+    await screen.findByText("alpha");
+
+    fireEvent.click(screen.getByRole("button", { name: "Remove this item" }));
+
+    const status = await screen.findByText("Could not remove this item");
+    expect(status).toHaveClass("status--error");
+  });
+
+  it("clears every entry when clear all is clicked", async () => {
+    setStoredEntries([entryA, entryB]);
+    render(<App />);
+    await screen.findByText("alpha");
+
+    fireEvent.click(screen.getByRole("button", { name: "Clear all" }));
+
+    expect(getChromeMock().runtime.sendMessage).toHaveBeenCalledWith({
+      type: "CLEAR_CLIPBOARD_ENTRIES",
+    });
+  });
+
+  it("shows an error status when clear all fails", async () => {
+    setStoredEntries([entryA]);
+    getChromeMock().runtime.sendMessage.mockResolvedValue({ ok: false, error: "boom" });
+    render(<App />);
+    await screen.findByText("alpha");
+
+    fireEvent.click(screen.getByRole("button", { name: "Clear all" }));
+
+    const status = await screen.findByText("Could not clear clipboard history");
+    expect(status).toHaveClass("status--error");
+  });
 });
