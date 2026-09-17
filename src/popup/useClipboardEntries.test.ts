@@ -144,4 +144,63 @@ describe("useClipboardEntries", () => {
       isError: true,
     });
   });
+
+  it("adds an entry from the clipboard, sending the existing add message", async () => {
+    vi.mocked(navigator.clipboard.readText).mockResolvedValue("some text");
+
+    const { result } = renderHook(() => useClipboardEntries());
+    await waitFor(() => expect(result.current.entries).toEqual([]));
+
+    await act(async () => {
+      await result.current.addFromClipboard();
+    });
+
+    expect(getChromeMock().runtime.sendMessage).toHaveBeenCalledWith({
+      type: "ADD_CLIPBOARD_ENTRY",
+      text: "some text",
+    });
+    expect(result.current.status).toEqual({ message: "Added from clipboard", isError: false });
+  });
+
+  it("shows a read error without sending a message when the clipboard read fails", async () => {
+    vi.mocked(navigator.clipboard.readText).mockRejectedValue(new Error("denied"));
+
+    const { result } = renderHook(() => useClipboardEntries());
+
+    await act(async () => {
+      await result.current.addFromClipboard();
+    });
+
+    expect(getChromeMock().runtime.sendMessage).not.toHaveBeenCalled();
+    expect(result.current.status).toEqual({ message: "Could not read clipboard", isError: true });
+  });
+
+  it("shows an empty-clipboard status without sending a message when the clipboard is blank", async () => {
+    vi.mocked(navigator.clipboard.readText).mockResolvedValue("   ");
+
+    const { result } = renderHook(() => useClipboardEntries());
+
+    await act(async () => {
+      await result.current.addFromClipboard();
+    });
+
+    expect(getChromeMock().runtime.sendMessage).not.toHaveBeenCalled();
+    expect(result.current.status).toEqual({ message: "Clipboard is empty", isError: true });
+  });
+
+  it("shows an error status when adding the clipboard text to storage fails", async () => {
+    vi.mocked(navigator.clipboard.readText).mockResolvedValue("some text");
+    getChromeMock().runtime.sendMessage.mockResolvedValue({ ok: false, error: "boom" });
+
+    const { result } = renderHook(() => useClipboardEntries());
+
+    await act(async () => {
+      await result.current.addFromClipboard();
+    });
+
+    expect(result.current.status).toEqual({
+      message: "Could not add clipboard item",
+      isError: true,
+    });
+  });
 });

@@ -129,4 +129,51 @@ describe("App", () => {
     const status = await screen.findByText("Could not clear clipboard history");
     expect(status).toHaveClass("status--error");
   });
+
+  it("shows the add-from-clipboard button even when there are no entries", async () => {
+    setStoredEntries([]);
+    render(<App />);
+
+    await screen.findByText("Copy text on a web page and it will appear here.");
+    expect(screen.getByRole("button", { name: "Add from clipboard" })).toBeInTheDocument();
+  });
+
+  it("adds an entry from the clipboard on click", async () => {
+    setStoredEntries([]);
+    vi.mocked(navigator.clipboard.readText).mockResolvedValue("some text");
+    render(<App />);
+    await screen.findByText("Copy text on a web page and it will appear here.");
+
+    fireEvent.click(screen.getByRole("button", { name: "Add from clipboard" }));
+
+    expect(await screen.findByText("Added from clipboard")).toBeInTheDocument();
+    expect(getChromeMock().runtime.sendMessage).toHaveBeenCalledWith({
+      type: "ADD_CLIPBOARD_ENTRY",
+      text: "some text",
+    });
+  });
+
+  it("shows a read error when the clipboard can't be read", async () => {
+    setStoredEntries([]);
+    vi.mocked(navigator.clipboard.readText).mockRejectedValue(new Error("denied"));
+    render(<App />);
+    await screen.findByText("Copy text on a web page and it will appear here.");
+
+    fireEvent.click(screen.getByRole("button", { name: "Add from clipboard" }));
+
+    const status = await screen.findByText("Could not read clipboard");
+    expect(status).toHaveClass("status--error");
+  });
+
+  it("shows an empty-clipboard status when the clipboard is blank", async () => {
+    setStoredEntries([]);
+    vi.mocked(navigator.clipboard.readText).mockResolvedValue("   ");
+    render(<App />);
+    await screen.findByText("Copy text on a web page and it will appear here.");
+
+    fireEvent.click(screen.getByRole("button", { name: "Add from clipboard" }));
+
+    const status = await screen.findByText("Clipboard is empty");
+    expect(status).toHaveClass("status--error");
+  });
 });

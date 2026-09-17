@@ -2,7 +2,8 @@ import { EntryButton } from "./EntryButton";
 import { useClipboardEntries } from "./useClipboardEntries";
 
 export function App() {
-  const { entries, status, copyEntry, removeEntry, clearEntries } = useClipboardEntries();
+  const { entries, status, copyEntry, removeEntry, clearEntries, addFromClipboard } =
+    useClipboardEntries();
   const [currentEntry, ...previousEntries] = entries;
   const statusClassName = status.isError ? "status status--error" : "status";
 
@@ -14,6 +15,9 @@ export function App() {
           <h1>Copy Stack</h1>
         </div>
         <div className="header__actions">
+          <button type="button" className="add-from-clipboard" onClick={addFromClipboard}>
+            Add from clipboard
+          </button>
           <span className="count">{entries.length} / 100</span>
           {entries.length > 0 && (
             <button type="button" className="clear-all" onClick={clearEntries}>

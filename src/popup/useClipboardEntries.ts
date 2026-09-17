@@ -14,6 +14,7 @@ interface UseClipboardEntriesResult {
   copyEntry: (entry: ClipboardEntry) => Promise<void>;
   removeEntry: (entry: ClipboardEntry) => Promise<void>;
   clearEntries: () => Promise<void>;
+  addFromClipboard: () => Promise<void>;
 }
 
 export function useClipboardEntries(): UseClipboardEntriesResult {
@@ -121,5 +122,37 @@ export function useClipboardEntries(): UseClipboardEntriesResult {
     }
   }, [showStatus]);
 
-  return { entries, status, copyEntry, removeEntry, clearEntries };
+  const addFromClipboard = useCallback(async () => {
+    let text: string;
+    try {
+      text = await navigator.clipboard.readText();
+    } catch (error: unknown) {
+      console.error("Failed to read clipboard:", error);
+      showStatus("Could not read clipboard", true);
+      return;
+    }
+
+    if (text.trim().length === 0) {
+      showStatus("Clipboard is empty", true);
+      return;
+    }
+
+    try {
+      const response = (await chrome.runtime.sendMessage({
+        type: "ADD_CLIPBOARD_ENTRY",
+        text,
+      } satisfies ExtensionMessage)) as ExtensionResponse;
+
+      if (!response.ok) {
+        throw new Error(response.error);
+      }
+
+      showStatus("Added from clipboard");
+    } catch (error: unknown) {
+      console.error("Failed to add clipboard entry:", error);
+      showStatus("Could not add clipboard item", true);
+    }
+  }, [showStatus]);
+
+  return { entries, status, copyEntry, removeEntry, clearEntries, addFromClipboard };
 }
