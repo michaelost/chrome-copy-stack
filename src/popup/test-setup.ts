@@ -33,7 +33,7 @@ const chromeMock = {
 vi.stubGlobal("chrome", chromeMock);
 Object.defineProperty(globalThis.navigator, "clipboard", {
   configurable: true,
-  value: { writeText: vi.fn() },
+  value: { writeText: vi.fn(), readText: vi.fn() },
 });
 
 export function getChromeMock() {
@@ -61,6 +61,8 @@ beforeEach(() => {
   chromeMock.runtime.sendMessage.mockResolvedValue({ ok: true });
   vi.mocked(navigator.clipboard.writeText).mockReset();
   vi.mocked(navigator.clipboard.writeText).mockResolvedValue(undefined);
+  vi.mocked(navigator.clipboard.readText).mockReset();
+  vi.mocked(navigator.clipboard.readText).mockResolvedValue("");
 });
 
 afterEach(() => {

@@ -8,12 +8,21 @@ interface StatusState {
   isError: boolean;
 }
 
+async function sendExtensionMessage(message: ExtensionMessage): Promise<void> {
+  const response = (await chrome.runtime.sendMessage(message)) as ExtensionResponse;
+
+  if (!response.ok) {
+    throw new Error(response.error);
+  }
+}
+
 interface UseClipboardEntriesResult {
   entries: ClipboardEntry[];
   status: StatusState;
   copyEntry: (entry: ClipboardEntry) => Promise<void>;
   removeEntry: (entry: ClipboardEntry) => Promise<void>;
   clearEntries: () => Promise<void>;
+  addFromClipboard: () => Promise<void>;
 }
 
 export function useClipboardEntries(): UseClipboardEntriesResult {
@@ -69,15 +78,7 @@ export function useClipboardEntries(): UseClipboardEntriesResult {
       }
 
       try {
-        const response = (await chrome.runtime.sendMessage({
-          type: "ACTIVATE_CLIPBOARD_ENTRY",
-          id: entry.id,
-        } satisfies ExtensionMessage)) as ExtensionResponse;
-
-        if (!response.ok) {
-          throw new Error(response.error);
-        }
-
+        await sendExtensionMessage({ type: "ACTIVATE_CLIPBOARD_ENTRY", id: entry.id });
         showStatus("Copied to clipboard");
       } catch (error: unknown) {
         console.error("Copied text but failed to update clipboard history:", error);
@@ -90,14 +91,7 @@ export function useClipboardEntries(): UseClipboardEntriesResult {
   const removeEntry = useCallback(
     async (entry: ClipboardEntry) => {
       try {
-        const response = (await chrome.runtime.sendMessage({
-          type: "REMOVE_CLIPBOARD_ENTRY",
-          id: entry.id,
-        } satisfies ExtensionMessage)) as ExtensionResponse;
-
-        if (!response.ok) {
-          throw new Error(response.error);
-        }
+        await sendExtensionMessage({ type: "REMOVE_CLIPBOARD_ENTRY", id: entry.id });
       } catch (error: unknown) {
         console.error("Failed to remove clipboard entry:", error);
         showStatus("Could not remove this item", true);
@@ -108,18 +102,36 @@ export function useClipboardEntries(): UseClipboardEntriesResult {
 
   const clearEntries = useCallback(async () => {
     try {
-      const response = (await chrome.runtime.sendMessage({
-        type: "CLEAR_CLIPBOARD_ENTRIES",
-      } satisfies ExtensionMessage)) as ExtensionResponse;
-
-      if (!response.ok) {
-        throw new Error(response.error);
-      }
+      await sendExtensionMessage({ type: "CLEAR_CLIPBOARD_ENTRIES" });
     } catch (error: unknown) {
       console.error("Failed to clear clipboard history:", error);
       showStatus("Could not clear clipboard history", true);
     }
   }, [showStatus]);
 
-  return { entries, status, copyEntry, removeEntry, clearEntries };
+  const addFromClipboard = useCallback(async () => {
+    let text: string;
+    try {
+      text = await navigator.clipboard.readText();
+    } catch (error: unknown) {
+      console.error("Failed to read clipboard:", error);
+      showStatus("Could not read clipboard", true);
+      return;
+    }
+
+    if (text.trim().length === 0) {
+      showStatus("Clipboard is empty", true);
+      return;
+    }
+
+    try {
+      await sendExtensionMessage({ type: "ADD_CLIPBOARD_ENTRY", text });
+      showStatus("Added from clipboard");
+    } catch (error: unknown) {
+      console.error("Failed to add clipboard entry:", error);
+      showStatus("Could not add clipboard item", true);
+    }
+  }, [showStatus]);
+
+  return { entries, status, copyEntry, removeEntry, clearEntries, addFromClipboard };
 }
