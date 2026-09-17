@@ -9,12 +9,23 @@ npm install
 npm run build
 ```
 
+This produces the loadable extension in `dist/`.
+
+## Develop
+
+```sh
+npm run dev
+```
+
+Runs the Vite/CRXJS dev server, rebuilding `dist/` on change (including
+popup HMR).
+
 ## Install in Chrome
 
 1. Open `chrome://extensions`.
 2. Enable **Developer mode**.
 3. Click **Load unpacked**.
-4. Select this repository folder.
+4. Select the `dist/` folder produced by `npm run build` (or `npm run dev`).
 
 After rebuilding, reload the extension from `chrome://extensions`.
 

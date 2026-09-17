@@ -1,4 +1,4 @@
-importScripts("storage.js");
+import { getClipboardEntries, saveClipboardEntries } from "./storage";
 
 (() => {
   const MAX_ENTRIES = 100;
