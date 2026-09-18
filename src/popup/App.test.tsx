@@ -188,4 +188,86 @@ describe("App", () => {
     const status = await screen.findByText("Clipboard is empty");
     expect(status).toHaveClass("status--error");
   });
+
+  it("renders a favorite toggle for each entry, reflecting its current state", async () => {
+    const favoriteEntry: ClipboardEntry = { ...entryB, isFavorite: true };
+    setStoredEntries([entryA, favoriteEntry]);
+    render(<App />);
+    await screen.findByText("alpha");
+
+    expect(
+      screen.getByRole("button", { name: "Add to favorites" }),
+    ).toHaveAttribute("aria-pressed", "false");
+    expect(
+      screen.getByRole("button", { name: "Remove from favorites" }),
+    ).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("toggles favorite state for an entry", async () => {
+    setStoredEntries([entryA]);
+    render(<App />);
+    await screen.findByText("alpha");
+
+    fireEvent.click(screen.getByRole("button", { name: "Add to favorites" }));
+
+    expect(getChromeMock().runtime.sendMessage).toHaveBeenCalledWith({
+      type: "TOGGLE_FAVORITE_ENTRY",
+      id: "a",
+    });
+  });
+
+  it("shows an error status when toggling favorite fails", async () => {
+    setStoredEntries([entryA]);
+    getChromeMock().runtime.sendMessage.mockResolvedValue({ ok: false, error: "boom" });
+    render(<App />);
+    await screen.findByText("alpha");
+
+    fireEvent.click(screen.getByRole("button", { name: "Add to favorites" }));
+
+    const status = await screen.findByText("Could not update favorite");
+    expect(status).toHaveClass("status--error");
+  });
+
+  it("filters to favorites only when the favorites toggle is active", async () => {
+    const favoriteEntry: ClipboardEntry = { ...entryB, isFavorite: true };
+    setStoredEntries([entryA, favoriteEntry]);
+    render(<App />);
+    await screen.findByText("alpha");
+
+    fireEvent.click(screen.getByRole("button", { name: "Favorites only" }));
+
+    expect(screen.queryByText("alpha")).not.toBeInTheDocument();
+    expect(screen.getByText("beta")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Showing favorites" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  });
+
+  it("shows a favorites-specific empty state when no entries are favorited", async () => {
+    setStoredEntries([entryA, entryB]);
+    render(<App />);
+    await screen.findByText("alpha");
+
+    fireEvent.click(screen.getByRole("button", { name: "Favorites only" }));
+
+    expect(await screen.findByText("No favorites yet.")).toBeInTheDocument();
+    expect(
+      screen.queryByText("Copy text on a web page and it will appear here."),
+    ).not.toBeInTheDocument();
+  });
+
+  it("clears every entry via clear all even while the favorites filter hides them", async () => {
+    const favoriteEntry: ClipboardEntry = { ...entryA, isFavorite: true };
+    setStoredEntries([favoriteEntry, entryB]);
+    render(<App />);
+    await screen.findByText("alpha");
+
+    fireEvent.click(screen.getByRole("button", { name: "Favorites only" }));
+    fireEvent.click(screen.getByRole("button", { name: "Clear all" }));
+
+    expect(getChromeMock().runtime.sendMessage).toHaveBeenCalledWith({
+      type: "CLEAR_CLIPBOARD_ENTRIES",
+    });
+  });
 });

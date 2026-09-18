@@ -16,7 +16,8 @@ import { getClipboardEntries, saveClipboardEntries } from "./storage";
       (message.type === "ADD_CLIPBOARD_ENTRY" && typeof message.text === "string") ||
       (message.type === "ACTIVATE_CLIPBOARD_ENTRY" && typeof message.id === "string") ||
       (message.type === "REMOVE_CLIPBOARD_ENTRY" && typeof message.id === "string") ||
-      message.type === "CLEAR_CLIPBOARD_ENTRIES"
+      message.type === "CLEAR_CLIPBOARD_ENTRIES" ||
+      (message.type === "TOGGLE_FAVORITE_ENTRY" && typeof message.id === "string")
     );
   }
 
@@ -72,6 +73,21 @@ import { getClipboardEntries, saveClipboardEntries } from "./storage";
     await saveClipboardEntries([]);
   }
 
+  async function toggleFavorite(id: string): Promise<void> {
+    const entries = await getClipboardEntries();
+    const selectedEntry = entries.find((entry) => entry.id === id);
+
+    if (!selectedEntry) {
+      throw new Error("Clipboard entry not found");
+    }
+
+    const nextEntries = entries.map((entry) =>
+      entry.id === id ? { ...entry, isFavorite: !entry.isFavorite } : entry,
+    );
+
+    await saveClipboardEntries(nextEntries);
+  }
+
   function enqueueStorageUpdate(update: () => Promise<void>): Promise<void> {
     const queuedUpdate = storageUpdateQueue.then(update);
     storageUpdateQueue = queuedUpdate.then(
@@ -93,6 +109,8 @@ import { getClipboardEntries, saveClipboardEntries } from "./storage";
           return removeEntry(message.id);
         case "CLEAR_CLIPBOARD_ENTRIES":
           return clearEntries();
+        case "TOGGLE_FAVORITE_ENTRY":
+          return toggleFavorite(message.id);
         default:
           return message satisfies never;
       }

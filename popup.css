@@ -224,3 +224,65 @@ section + section {
 .status--error {
   color: #b42318;
 }
+
+.favorites-filter {
+  padding: 5px 10px;
+  border: 1px solid #d8deea;
+  border-radius: 999px;
+  color: #475467;
+  background: #ffffff;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.favorites-filter:hover {
+  border-color: #9aa8c0;
+  background: #f4f6fb;
+}
+
+.favorites-filter:focus-visible {
+  outline: 2px solid #4169e1;
+  outline-offset: 2px;
+}
+
+.favorites-filter[aria-pressed="true"] {
+  border-color: #f5b93c;
+  color: #92660a;
+  background: #fff8e6;
+}
+
+.entry__favorite {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid #d8deea;
+  border-radius: 6px;
+  color: #98a2b3;
+  background: #ffffff;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.entry__favorite:hover {
+  border-color: #f5cf7c;
+  color: #92660a;
+  background: #fffaf0;
+}
+
+.entry__favorite:focus-visible {
+  outline: 2px solid #4169e1;
+  outline-offset: 2px;
+}
+
+.entry__favorite--active {
+  border-color: #f5b93c;
+  color: #b98900;
+  background: #fff8e6;
+}
