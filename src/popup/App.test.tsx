@@ -3,8 +3,20 @@ import { describe, expect, it, vi } from "vitest";
 import { emitStorageChange, getChromeMock, setStoredEntries } from "./test-setup";
 import { App } from "./App";
 
-const entryA: ClipboardEntry = { id: "a", text: "alpha", copiedAt: 1 };
-const entryB: ClipboardEntry = { id: "b", text: "beta", copiedAt: 2 };
+const entryA: ClipboardEntry = {
+  id: "a",
+  text: "alpha",
+  copiedAt: 1,
+  folderId: null,
+  isFavorite: false,
+};
+const entryB: ClipboardEntry = {
+  id: "b",
+  text: "beta",
+  copiedAt: 2,
+  folderId: null,
+  isFavorite: false,
+};
 
 describe("App", () => {
   it("renders the empty state when there are no entries", async () => {

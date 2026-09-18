@@ -34,6 +34,8 @@ import { getClipboardEntries, saveClipboardEntries } from "./storage";
       id: crypto.randomUUID(),
       text,
       copiedAt: Date.now(),
+      folderId: null,
+      isFavorite: false,
     };
     const nextEntries = [
       entry,

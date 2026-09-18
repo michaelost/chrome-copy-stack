@@ -14,10 +14,12 @@ src/
   background.ts         → Service worker: owns all storage mutations
   content.ts            → Captures "copy" events on web pages
   popup/
-    main.tsx             → React root mount
-    App.tsx               → Popup layout
-    EntryButton.tsx        → One entry's copy + delete controls
-    useClipboardEntries.ts → All popup state/actions (the hook App.tsx uses)
+    main.tsx               → React root mount
+    App.tsx                 → Popup layout; composes the hooks below
+    EntryButton.tsx          → One entry's copy + delete controls
+    useClipboardEntries.ts   → Entry CRUD state/actions (takes showStatus as a param)
+    useStatusMessage.ts      → The one shared transient status line
+    extensionMessaging.ts    → sendExtensionMessage() (send + ok-check + throw)
 popup.html / popup.css → Popup shell and styling
 ```
 
@@ -29,15 +31,32 @@ uses React 19.
 
 ```ts
 interface ClipboardEntry {
-  id: string;        // crypto.randomUUID()
+  id: string;              // crypto.randomUUID()
   text: string;
-  copiedAt: number;  // Date.now()
+  copiedAt: number;        // Date.now()
+  folderId: string | null; // null = ungrouped. Not yet surfaced in the UI.
+  isFavorite: boolean;     // Not yet surfaced in the UI.
+}
+
+interface Folder {
+  id: string;
+  name: string;
+  createdAt: number;
 }
 ```
+
+`folderId`/`isFavorite` and the `Folder` type are shared-foundation additions
+for upcoming folders/favorites features (see `docs/PARALLEL_FEATURES.md`) —
+no UI reads or writes them yet. `getClipboardEntries()` normalizes entries
+saved before these fields existed (`folderId ?? null`, `isFavorite ?? false`)
+on every read, so old and new data are always fully-shaped, with no version
+key or one-time migration needed.
 
 Stored under `chrome.storage.local` key `"clipboardEntries"` (constant
 `CLIPBOARD_STORAGE_KEY` in `src/storage.ts`), capped at `MAX_ENTRIES = 100`
 and `MAX_TEXT_LENGTH = 20_000` characters (both defined in `background.ts`).
+Folders will use a separate key, `"clipboardFolders"` (`CLIPBOARD_FOLDERS_STORAGE_KEY`),
+with matching `getFolders()`/`saveFolders()` accessors already in place.
 
 ## How data gets in and out
 
@@ -69,6 +88,18 @@ back to the focused `<input>`/`<textarea>`'s selection, falling back to
 `window.getSelection()` — and sends `ADD_CLIPBOARD_ENTRY` if non-empty.
 Chrome blocks content scripts on `chrome://` pages and can't see clipboard
 activity from outside the browser.
+
+`App.tsx` derives `visibleEntries` from the hook's `entries` before splitting
+into current/previous — today it's an identity pass-through, but it's the
+designated insertion point for folder/favorites filtering (see
+`docs/PARALLEL_FEATURES.md`). The count badge and "Clear all" visibility
+stay bound to the unfiltered `entries` total, since "Clear all" always
+clears everything regardless of any active filter.
+
+The transient status line is now its own hook, `useStatusMessage()`,
+composed once in `App.tsx` and passed into `useClipboardEntries(showStatus)`
+as a parameter — this keeps a single shared status line even once other
+hooks (folders, favorites) also need to report success/failure into it.
 
 ## The popup UI (`App.tsx`)
 

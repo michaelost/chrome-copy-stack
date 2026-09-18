@@ -1,42 +1,19 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { sendExtensionMessage } from "./extensionMessaging";
 import { CLIPBOARD_STORAGE_KEY, getClipboardEntries } from "../storage";
-
-const STATUS_TIMEOUT_MS = 1800;
-
-interface StatusState {
-  message: string;
-  isError: boolean;
-}
-
-async function sendExtensionMessage(message: ExtensionMessage): Promise<void> {
-  const response = (await chrome.runtime.sendMessage(message)) as ExtensionResponse;
-
-  if (!response.ok) {
-    throw new Error(response.error);
-  }
-}
 
 interface UseClipboardEntriesResult {
   entries: ClipboardEntry[];
-  status: StatusState;
   copyEntry: (entry: ClipboardEntry) => Promise<void>;
   removeEntry: (entry: ClipboardEntry) => Promise<void>;
   clearEntries: () => Promise<void>;
   addFromClipboard: () => Promise<void>;
 }
 
-export function useClipboardEntries(): UseClipboardEntriesResult {
+export function useClipboardEntries(
+  showStatus: (message: string, isError?: boolean) => void,
+): UseClipboardEntriesResult {
   const [entries, setEntries] = useState<ClipboardEntry[]>([]);
-  const [status, setStatus] = useState<StatusState>({ message: "", isError: false });
-  const statusTimer = useRef<number | undefined>(undefined);
-
-  const showStatus = useCallback((message: string, isError = false) => {
-    window.clearTimeout(statusTimer.current);
-    setStatus({ message, isError });
-    statusTimer.current = window.setTimeout(() => {
-      setStatus({ message: "", isError: false });
-    }, STATUS_TIMEOUT_MS);
-  }, []);
 
   const refresh = useCallback(async () => {
     try {
@@ -63,7 +40,6 @@ export function useClipboardEntries(): UseClipboardEntriesResult {
 
     return () => {
       chrome.storage.onChanged.removeListener(handleStorageChange);
-      window.clearTimeout(statusTimer.current);
     };
   }, [refresh]);
 
@@ -133,5 +109,5 @@ export function useClipboardEntries(): UseClipboardEntriesResult {
     }
   }, [showStatus]);
 
-  return { entries, status, copyEntry, removeEntry, clearEntries, addFromClipboard };
+  return { entries, copyEntry, removeEntry, clearEntries, addFromClipboard };
 }

@@ -1,10 +1,16 @@
 import { EntryButton } from "./EntryButton";
 import { useClipboardEntries } from "./useClipboardEntries";
+import { useStatusMessage } from "./useStatusMessage";
 
 export function App() {
-  const { entries, status, copyEntry, removeEntry, clearEntries, addFromClipboard } =
-    useClipboardEntries();
-  const [currentEntry, ...previousEntries] = entries;
+  const { status, showStatus } = useStatusMessage();
+  const { entries, copyEntry, removeEntry, clearEntries, addFromClipboard } =
+    useClipboardEntries(showStatus);
+  // Folders/favorites will narrow this to the active filter before the
+  // current/previous split; the count badge below stays bound to the
+  // unfiltered `entries` since it reflects total storage usage (N / 100).
+  const visibleEntries = entries;
+  const [currentEntry, ...previousEntries] = visibleEntries;
   const statusClassName = status.isError ? "status status--error" : "status";
 
   return (

@@ -2,6 +2,14 @@ interface ClipboardEntry {
   id: string;
   text: string;
   copiedAt: number;
+  folderId: string | null;
+  isFavorite: boolean;
+}
+
+interface Folder {
+  id: string;
+  name: string;
+  createdAt: number;
 }
 
 type ExtensionMessage =
