@@ -17,7 +17,9 @@ type ExtensionMessage =
   | { type: "ACTIVATE_CLIPBOARD_ENTRY"; id: string }
   | { type: "REMOVE_CLIPBOARD_ENTRY"; id: string }
   | { type: "CLEAR_CLIPBOARD_ENTRIES" }
-  | { type: "TOGGLE_FAVORITE_ENTRY"; id: string };
+  | { type: "TOGGLE_FAVORITE_ENTRY"; id: string }
+  | { type: "CREATE_FOLDER"; name: string }
+  | { type: "ASSIGN_ENTRY_TO_FOLDER"; id: string; folderId: string | null };
 
 type ExtensionResponse =
   | { ok: true }

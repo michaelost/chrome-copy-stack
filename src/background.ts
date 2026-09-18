@@ -1,4 +1,4 @@
-import { getClipboardEntries, saveClipboardEntries } from "./storage";
+import { getClipboardEntries, getFolders, saveClipboardEntries, saveFolders } from "./storage";
 
 (() => {
   const MAX_ENTRIES = 100;
@@ -10,14 +10,24 @@ import { getClipboardEntries, saveClipboardEntries } from "./storage";
       return false;
     }
 
-    const message = value as { type?: unknown; text?: unknown; id?: unknown };
+    const message = value as {
+      type?: unknown;
+      text?: unknown;
+      id?: unknown;
+      name?: unknown;
+      folderId?: unknown;
+    };
 
     return (
       (message.type === "ADD_CLIPBOARD_ENTRY" && typeof message.text === "string") ||
       (message.type === "ACTIVATE_CLIPBOARD_ENTRY" && typeof message.id === "string") ||
       (message.type === "REMOVE_CLIPBOARD_ENTRY" && typeof message.id === "string") ||
       message.type === "CLEAR_CLIPBOARD_ENTRIES" ||
-      (message.type === "TOGGLE_FAVORITE_ENTRY" && typeof message.id === "string")
+      (message.type === "TOGGLE_FAVORITE_ENTRY" && typeof message.id === "string") ||
+      (message.type === "CREATE_FOLDER" && typeof message.name === "string") ||
+      (message.type === "ASSIGN_ENTRY_TO_FOLDER" &&
+        typeof message.id === "string" &&
+        (message.folderId === null || typeof message.folderId === "string"))
     );
   }
 
@@ -88,6 +98,43 @@ import { getClipboardEntries, saveClipboardEntries } from "./storage";
     await saveClipboardEntries(nextEntries);
   }
 
+  async function createFolder(name: string): Promise<void> {
+    const trimmedName = name.trim();
+
+    if (trimmedName.length === 0) {
+      return;
+    }
+
+    const folders = await getFolders();
+    const folder: Folder = {
+      id: crypto.randomUUID(),
+      name: trimmedName,
+      createdAt: Date.now(),
+    };
+
+    await saveFolders([...folders, folder]);
+  }
+
+  async function assignEntryToFolder(id: string, folderId: string | null): Promise<void> {
+    if (folderId !== null) {
+      const folders = await getFolders();
+
+      if (!folders.some((folder) => folder.id === folderId)) {
+        throw new Error("Folder not found");
+      }
+    }
+
+    const entries = await getClipboardEntries();
+
+    if (!entries.some((entry) => entry.id === id)) {
+      throw new Error("Clipboard entry not found");
+    }
+
+    const nextEntries = entries.map((entry) => (entry.id === id ? { ...entry, folderId } : entry));
+
+    await saveClipboardEntries(nextEntries);
+  }
+
   function enqueueStorageUpdate(update: () => Promise<void>): Promise<void> {
     const queuedUpdate = storageUpdateQueue.then(update);
     storageUpdateQueue = queuedUpdate.then(
@@ -111,6 +158,10 @@ import { getClipboardEntries, saveClipboardEntries } from "./storage";
           return clearEntries();
         case "TOGGLE_FAVORITE_ENTRY":
           return toggleFavorite(message.id);
+        case "CREATE_FOLDER":
+          return createFolder(message.name);
+        case "ASSIGN_ENTRY_TO_FOLDER":
+          return assignEntryToFolder(message.id, message.folderId);
         default:
           return message satisfies never;
       }

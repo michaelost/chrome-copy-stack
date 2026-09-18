@@ -286,3 +286,90 @@ section + section {
   color: #b98900;
   background: #fff8e6;
 }
+
+.folder-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  border: 1px solid #d8deea;
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.folder-controls__filter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.folder-controls__label {
+  color: #667085;
+  font-weight: 700;
+}
+
+.folder-controls__filter select {
+  padding: 4px 6px;
+  border: 1px solid #d8deea;
+  border-radius: 6px;
+  color: #172033;
+  background: #ffffff;
+  font: inherit;
+  font-size: 12px;
+}
+
+.folder-controls__create {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.folder-controls__create input {
+  width: 120px;
+  padding: 4px 8px;
+  border: 1px solid #d8deea;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 12px;
+}
+
+.folder-controls__add {
+  padding: 5px 10px;
+  border: 1px solid #8ca4ef;
+  border-radius: 999px;
+  color: #33459e;
+  background: #eef2ff;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.folder-controls__add:hover {
+  border-color: #4169e1;
+  background: #e3e9ff;
+}
+
+.folder-controls__add:focus-visible,
+.folder-controls__filter select:focus-visible,
+.folder-controls__create input:focus-visible,
+.entry__folder-select:focus-visible {
+  outline: 2px solid #4169e1;
+  outline-offset: 2px;
+}
+
+.entry__folder-select {
+  flex: 0 0 auto;
+  max-width: 96px;
+  padding: 3px 4px;
+  border: 1px solid #d8deea;
+  border-radius: 6px;
+  color: #475467;
+  background: #ffffff;
+  font: inherit;
+  font-size: 11px;
+}

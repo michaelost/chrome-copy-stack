@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { EntryButton } from "./EntryButton";
+import { FolderSelector } from "./FolderSelector";
 import { useClipboardEntries } from "./useClipboardEntries";
 import { useFavoriteActions } from "./useFavoriteActions";
+import { useFolders } from "./useFolders";
 import { useStatusMessage } from "./useStatusMessage";
 
 export function App() {
@@ -9,16 +11,34 @@ export function App() {
   const { entries, copyEntry, removeEntry, clearEntries, addFromClipboard } =
     useClipboardEntries(showStatus);
   const { toggleFavorite } = useFavoriteActions(showStatus);
+  const {
+    folders,
+    selectedFolderId,
+    selectFolder,
+    createFolder,
+    assignEntryToFolder,
+    matchesSelectedFolder,
+  } = useFolders(showStatus);
   // Favorites: local, not-persisted filter (resets every popup open) that
   // narrows `entries` before the current/previous split. The count badge
   // and Clear all below stay bound to the unfiltered `entries` since Clear
-  // all always clears everything regardless of any active filter.
+  // all always clears everything regardless of any active filter. Folder
+  // and favorites filters compose with AND semantics.
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
-  const visibleEntries = entries.filter((entry) => !showFavoritesOnly || entry.isFavorite);
+  const visibleEntries = entries
+    .filter(matchesSelectedFolder)
+    .filter((entry) => !showFavoritesOnly || entry.isFavorite);
   const [currentEntry, ...previousEntries] = visibleEntries;
   const statusClassName = status.isError ? "status status--error" : "status";
-  const showFavoritesEmptyState =
-    showFavoritesOnly && entries.length > 0 && visibleEntries.length === 0;
+  const isFolderFiltered = selectedFolderId !== null;
+  const showFilteredEmptyState =
+    entries.length > 0 && visibleEntries.length === 0 && (isFolderFiltered || showFavoritesOnly);
+  const filteredEmptyStateMessage =
+    isFolderFiltered && showFavoritesOnly
+      ? "No entries match the selected folder and favorites filter."
+      : isFolderFiltered
+        ? "This folder is empty."
+        : "No favorites yet.";
   const favoritesFilterLabel = showFavoritesOnly ? "Showing favorites" : "Favorites only";
 
   return (
@@ -49,12 +69,19 @@ export function App() {
         </div>
       </header>
 
+      <FolderSelector
+        folders={folders}
+        selectedFolderId={selectedFolderId}
+        onSelectFolder={selectFolder}
+        onCreateFolder={createFolder}
+      />
+
       <main>
         {entries.length === 0 && (
           <p className="empty-state">Copy text on a web page and it will appear here.</p>
         )}
 
-        {showFavoritesEmptyState && <p className="empty-state">No favorites yet.</p>}
+        {showFilteredEmptyState && <p className="empty-state">{filteredEmptyStateMessage}</p>}
 
         {currentEntry && (
           <section>
@@ -65,6 +92,8 @@ export function App() {
               onCopy={copyEntry}
               onRemove={removeEntry}
               onToggleFavorite={toggleFavorite}
+              folders={folders}
+              onAssignFolder={assignEntryToFolder}
             />
           </section>
         )}
@@ -81,6 +110,8 @@ export function App() {
                   onCopy={copyEntry}
                   onRemove={removeEntry}
                   onToggleFavorite={toggleFavorite}
+                  folders={folders}
+                  onAssignFolder={assignEntryToFolder}
                 />
               ))}
             </div>

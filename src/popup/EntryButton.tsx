@@ -4,6 +4,8 @@ interface EntryButtonProps {
   onCopy: (entry: ClipboardEntry) => void;
   onRemove: (entry: ClipboardEntry) => void;
   onToggleFavorite: (entry: ClipboardEntry) => void;
+  folders: Folder[];
+  onAssignFolder: (entry: ClipboardEntry, folderId: string | null) => void;
 }
 
 export function EntryButton({
@@ -12,6 +14,8 @@ export function EntryButton({
   onCopy,
   onRemove,
   onToggleFavorite,
+  folders,
+  onAssignFolder,
 }: EntryButtonProps) {
   const className = variant === "current" ? "entry entry--current" : "entry";
   const favoriteClassName = entry.isFavorite
@@ -39,6 +43,23 @@ export function EntryButton({
       >
         <span aria-hidden="true">{entry.isFavorite ? "★" : "☆"}</span>
       </button>
+      <select
+        className="entry__folder-select"
+        title="Assign to folder"
+        aria-label="Assign to folder"
+        value={entry.folderId ?? ""}
+        onChange={(event) => {
+          const value = event.target.value;
+          onAssignFolder(entry, value === "" ? null : value);
+        }}
+      >
+        <option value="">Ungrouped</option>
+        {folders.map((folder) => (
+          <option key={folder.id} value={folder.id}>
+            {folder.name}
+          </option>
+        ))}
+      </select>
       <button
         type="button"
         className="entry__delete"

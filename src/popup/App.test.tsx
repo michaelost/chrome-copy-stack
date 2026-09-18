@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { emitStorageChange, getChromeMock, setStoredEntries } from "./test-setup";
+import { emitStorageChange, getChromeMock, setStoredEntries, setStoredFolders } from "./test-setup";
 import { App } from "./App";
 
 const entryA: ClipboardEntry = {
@@ -15,6 +15,15 @@ const entryB: ClipboardEntry = {
   text: "beta",
   copiedAt: 2,
   folderId: null,
+  isFavorite: false,
+};
+
+const folderWork: Folder = { id: "f1", name: "Work", createdAt: 1 };
+const entryInFolder: ClipboardEntry = {
+  id: "c",
+  text: "gamma",
+  copiedAt: 3,
+  folderId: "f1",
   isFavorite: false,
 };
 
@@ -269,5 +278,140 @@ describe("App", () => {
     expect(getChromeMock().runtime.sendMessage).toHaveBeenCalledWith({
       type: "CLEAR_CLIPBOARD_ENTRIES",
     });
+  });
+
+  it("creates a folder from the folder controls", async () => {
+    setStoredEntries([]);
+    setStoredFolders([]);
+    render(<App />);
+    await screen.findByText("Copy text on a web page and it will appear here.");
+
+    fireEvent.change(screen.getByLabelText("New folder name"), {
+      target: { value: "Work" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Add folder" }));
+
+    expect(getChromeMock().runtime.sendMessage).toHaveBeenCalledWith({
+      type: "CREATE_FOLDER",
+      name: "Work",
+    });
+  });
+
+  it("assigns an entry to a folder via the per-entry folder select", async () => {
+    setStoredEntries([entryA]);
+    setStoredFolders([folderWork]);
+    render(<App />);
+    await screen.findByText("alpha");
+
+    fireEvent.change(screen.getByLabelText("Assign to folder"), {
+      target: { value: "f1" },
+    });
+
+    expect(getChromeMock().runtime.sendMessage).toHaveBeenCalledWith({
+      type: "ASSIGN_ENTRY_TO_FOLDER",
+      id: "a",
+      folderId: "f1",
+    });
+  });
+
+  it("returns an entry to Ungrouped via the per-entry folder select", async () => {
+    setStoredEntries([entryInFolder]);
+    setStoredFolders([folderWork]);
+    render(<App />);
+    await screen.findByText("gamma");
+
+    fireEvent.change(screen.getByLabelText("Assign to folder"), {
+      target: { value: "" },
+    });
+
+    expect(getChromeMock().runtime.sendMessage).toHaveBeenCalledWith({
+      type: "ASSIGN_ENTRY_TO_FOLDER",
+      id: "c",
+      folderId: null,
+    });
+  });
+
+  it("filters visible entries to the selected folder", async () => {
+    setStoredEntries([entryA, entryInFolder]);
+    setStoredFolders([folderWork]);
+    render(<App />);
+    await screen.findByText("alpha");
+    expect(screen.getByText("gamma")).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Filter by folder"), {
+      target: { value: "f1" },
+    });
+
+    expect(await screen.findByText("gamma")).toBeInTheDocument();
+    expect(screen.queryByText("alpha")).not.toBeInTheDocument();
+  });
+
+  it("shows a folder-empty state when the selected folder has no entries", async () => {
+    setStoredEntries([entryA]);
+    setStoredFolders([folderWork]);
+    render(<App />);
+    await screen.findByText("alpha");
+
+    fireEvent.change(screen.getByLabelText("Filter by folder"), {
+      target: { value: "f1" },
+    });
+
+    expect(await screen.findByText("This folder is empty.")).toBeInTheDocument();
+    expect(
+      screen.queryByText("Copy text on a web page and it will appear here."),
+    ).not.toBeInTheDocument();
+  });
+
+  it("still clears every entry via Clear all while a folder filter is active", async () => {
+    setStoredEntries([entryA, entryInFolder]);
+    setStoredFolders([folderWork]);
+    render(<App />);
+    await screen.findByText("alpha");
+
+    fireEvent.change(screen.getByLabelText("Filter by folder"), {
+      target: { value: "f1" },
+    });
+    await screen.findByText("gamma");
+
+    fireEvent.click(screen.getByRole("button", { name: "Clear all" }));
+
+    expect(getChromeMock().runtime.sendMessage).toHaveBeenCalledWith({
+      type: "CLEAR_CLIPBOARD_ENTRIES",
+    });
+  });
+
+  it("keeps the count badge bound to total entries regardless of the folder filter", async () => {
+    setStoredEntries([entryA, entryInFolder]);
+    setStoredFolders([folderWork]);
+    render(<App />);
+    await screen.findByText("alpha");
+    expect(screen.getByText("2 / 100")).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Filter by folder"), {
+      target: { value: "f1" },
+    });
+    await screen.findByText("gamma");
+
+    expect(screen.getByText("2 / 100")).toBeInTheDocument();
+  });
+
+  it("shows a generic no-matching-entries state when the folder and favorites filters combine to zero results", async () => {
+    const favoriteEntry: ClipboardEntry = { ...entryA, isFavorite: true };
+    setStoredEntries([favoriteEntry, entryInFolder]);
+    setStoredFolders([folderWork]);
+    render(<App />);
+    await screen.findByText("alpha");
+
+    fireEvent.change(screen.getByLabelText("Filter by folder"), {
+      target: { value: "f1" },
+    });
+    await screen.findByText("gamma");
+    fireEvent.click(screen.getByRole("button", { name: "Favorites only" }));
+
+    expect(
+      await screen.findByText("No entries match the selected folder and favorites filter."),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("This folder is empty.")).not.toBeInTheDocument();
+    expect(screen.queryByText("No favorites yet.")).not.toBeInTheDocument();
   });
 });
