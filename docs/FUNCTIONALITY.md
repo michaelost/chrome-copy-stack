@@ -138,6 +138,14 @@ listening) and sends it through the same `ADD_CLIPBOARD_ENTRY` message
 `storage`, `clipboardWrite`, `clipboardRead` — no host permissions beyond the
 content script's own `<all_urls>` match.
 
+## Keyboard shortcut (`manifest.json`)
+
+A `commands` entry binds Chrome's reserved `_execute_action` command to
+`Ctrl+Shift+K` (`Command+Shift+K` on macOS), opening the toolbar popup exactly
+as if the user clicked the extension icon. Chrome handles `_execute_action`
+natively — there is no background listener or popup code involved. Users can
+rebind or disable it at `chrome://extensions/shortcuts`.
+
 ## Testing
 
 Vitest + Testing Library, jsdom environment. Tests live next to their source
