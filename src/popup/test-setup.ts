@@ -65,6 +65,12 @@ export function emitStorageChange(entries: ClipboardEntry[]): void {
   storageListeners.forEach((listener) => listener(changes, "local"));
 }
 
+export function emitFolderStorageChange(folders: Folder[]): void {
+  storedData[CLIPBOARD_FOLDERS_STORAGE_KEY] = folders;
+  const changes = { [CLIPBOARD_FOLDERS_STORAGE_KEY]: { newValue: folders } };
+  storageListeners.forEach((listener) => listener(changes, "local"));
+}
+
 beforeEach(() => {
   storedData = {};
   storageListeners.clear();

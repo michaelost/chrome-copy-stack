@@ -2,14 +2,14 @@ import { useCallback, useEffect, useState } from "react";
 import { sendExtensionMessage } from "./extensionMessaging";
 import { CLIPBOARD_FOLDERS_STORAGE_KEY, getFolders } from "../storage";
 
-/** Sentinel `selectedFolderId` value for "entries with no folder", distinct
- * from `null` which means "no filter" (show every entry). */
+/** Sentinel `selectedFolderId` value for "entries with no folder". This is
+ * also the default selected tab — there is no "All" state. */
 export const UNGROUPED_FOLDER_ID = "ungrouped";
 
 interface UseFoldersResult {
   folders: Folder[];
-  selectedFolderId: string | null;
-  selectFolder: (folderId: string | null) => void;
+  selectedFolderId: string;
+  selectFolder: (folderId: string) => void;
   createFolder: (name: string) => Promise<void>;
   assignEntryToFolder: (entry: ClipboardEntry, folderId: string | null) => Promise<void>;
   matchesSelectedFolder: (entry: ClipboardEntry) => boolean;
@@ -19,7 +19,7 @@ export function useFolders(
   showStatus: (message: string, isError?: boolean) => void,
 ): UseFoldersResult {
   const [folders, setFolders] = useState<Folder[]>([]);
-  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
+  const [selectedFolderId, setSelectedFolderId] = useState<string>(UNGROUPED_FOLDER_ID);
 
   const refresh = useCallback(async () => {
     try {
@@ -49,7 +49,7 @@ export function useFolders(
     };
   }, [refresh]);
 
-  const selectFolder = useCallback((folderId: string | null) => {
+  const selectFolder = useCallback((folderId: string) => {
     setSelectedFolderId(folderId);
   }, []);
 
@@ -85,10 +85,6 @@ export function useFolders(
 
   const matchesSelectedFolder = useCallback(
     (entry: ClipboardEntry) => {
-      if (selectedFolderId === null) {
-        return true;
-      }
-
       if (selectedFolderId === UNGROUPED_FOLDER_ID) {
         return entry.folderId === null;
       }

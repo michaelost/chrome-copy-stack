@@ -1,6 +1,12 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { emitStorageChange, getChromeMock, setStoredEntries, setStoredFolders } from "./test-setup";
+import {
+  emitFolderStorageChange,
+  emitStorageChange,
+  getChromeMock,
+  setStoredEntries,
+  setStoredFolders,
+} from "./test-setup";
 import { App } from "./App";
 
 const entryA: ClipboardEntry = {
@@ -19,6 +25,7 @@ const entryB: ClipboardEntry = {
 };
 
 const folderWork: Folder = { id: "f1", name: "Work", createdAt: 1 };
+const folderZeta: Folder = { id: "f2", name: "Zeta", createdAt: 2 };
 const entryInFolder: ClipboardEntry = {
   id: "c",
   text: "gamma",
@@ -52,8 +59,9 @@ describe("App", () => {
   it("copies an entry on click and shows a success status", async () => {
     setStoredEntries([entryA]);
     render(<App />);
+    await screen.findByText("alpha");
 
-    fireEvent.click(await screen.findByText("alpha"));
+    fireEvent.click(screen.getByRole("button", { name: "Copy this text" }));
 
     expect(await screen.findByText("Copied to clipboard")).toBeInTheDocument();
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith("alpha");
@@ -63,8 +71,9 @@ describe("App", () => {
     setStoredEntries([entryA]);
     vi.mocked(navigator.clipboard.writeText).mockRejectedValue(new Error("denied"));
     render(<App />);
+    await screen.findByText("alpha");
 
-    fireEvent.click(await screen.findByText("alpha"));
+    fireEvent.click(screen.getByRole("button", { name: "Copy this text" }));
 
     const status = await screen.findByText("Could not copy this item");
     expect(status).toHaveClass("status--error");
@@ -74,8 +83,9 @@ describe("App", () => {
     setStoredEntries([entryA]);
     getChromeMock().runtime.sendMessage.mockResolvedValue({ ok: false, error: "boom" });
     render(<App />);
+    await screen.findByText("alpha");
 
-    fireEvent.click(await screen.findByText("alpha"));
+    fireEvent.click(screen.getByRole("button", { name: "Copy this text" }));
 
     const status = await screen.findByText("Copied, but history was not updated");
     expect(status).toHaveClass("status--error");
@@ -253,14 +263,16 @@ describe("App", () => {
     );
   });
 
-  it("shows a favorites-specific empty state when no entries are favorited", async () => {
+  it("shows the filtered empty state when no entries in the current tab are favorited", async () => {
     setStoredEntries([entryA, entryB]);
     render(<App />);
     await screen.findByText("alpha");
 
     fireEvent.click(screen.getByRole("button", { name: "Favorites only" }));
 
-    expect(await screen.findByText("No favorites yet.")).toBeInTheDocument();
+    expect(
+      await screen.findByText("No entries match the selected folder and favorites filter."),
+    ).toBeInTheDocument();
     expect(
       screen.queryByText("Copy text on a web page and it will appear here."),
     ).not.toBeInTheDocument();
@@ -318,6 +330,8 @@ describe("App", () => {
     setStoredEntries([entryInFolder]);
     setStoredFolders([folderWork]);
     render(<App />);
+    await screen.findByText("This folder is empty.");
+    fireEvent.click(screen.getByRole("tab", { name: "Work" }));
     await screen.findByText("gamma");
 
     fireEvent.change(screen.getByLabelText("Assign to folder"), {
@@ -331,19 +345,85 @@ describe("App", () => {
     });
   });
 
-  it("filters visible entries to the selected folder", async () => {
+  it("shows only Ungrouped entries by default, as the first and default-selected tab", async () => {
     setStoredEntries([entryA, entryInFolder]);
     setStoredFolders([folderWork]);
     render(<App />);
     await screen.findByText("alpha");
-    expect(screen.getByText("gamma")).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText("Filter by folder"), {
-      target: { value: "f1" },
-    });
+    const tabs = screen.getAllByRole("tab");
+    expect(tabs[0]).toHaveTextContent("Ungrouped");
+    expect(tabs[0]).toHaveAttribute("aria-selected", "true");
+    expect(screen.queryByText("gamma")).not.toBeInTheDocument();
+  });
+
+  it("lists folder tabs in their existing storage order, not alphabetically", async () => {
+    setStoredEntries([]);
+    setStoredFolders([folderZeta, folderWork]);
+    render(<App />);
+    await screen.findByText("Copy text on a web page and it will appear here.");
+
+    const tabNames = screen.getAllByRole("tab").map((tab) => tab.textContent);
+    expect(tabNames).toEqual(["Ungrouped", "Zeta", "Work"]);
+  });
+
+  it("switches visible entries when a folder tab is clicked", async () => {
+    setStoredEntries([entryA, entryInFolder]);
+    setStoredFolders([folderWork]);
+    render(<App />);
+    await screen.findByText("alpha");
+    expect(screen.queryByText("gamma")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("tab", { name: "Work" }));
 
     expect(await screen.findByText("gamma")).toBeInTheDocument();
     expect(screen.queryByText("alpha")).not.toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Work" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: "Ungrouped" })).toHaveAttribute("aria-selected", "false");
+  });
+
+  it("moves focus and selection between folder tabs with arrow keys", async () => {
+    setStoredEntries([entryA, entryInFolder]);
+    setStoredFolders([folderWork]);
+    render(<App />);
+    await screen.findByText("alpha");
+
+    const ungroupedTab = screen.getByRole("tab", { name: "Ungrouped" });
+    ungroupedTab.focus();
+    fireEvent.keyDown(ungroupedTab, { key: "ArrowRight" });
+
+    const workTab = screen.getByRole("tab", { name: "Work" });
+    expect(workTab).toHaveAttribute("aria-selected", "true");
+    expect(workTab).toHaveFocus();
+    expect(await screen.findByText("gamma")).toBeInTheDocument();
+
+    fireEvent.keyDown(workTab, { key: "ArrowLeft" });
+
+    expect(ungroupedTab).toHaveAttribute("aria-selected", "true");
+    expect(ungroupedTab).toHaveFocus();
+  });
+
+  it("adds a new tab when a folder is created", async () => {
+    setStoredEntries([]);
+    setStoredFolders([]);
+    render(<App />);
+    await screen.findByText("Copy text on a web page and it will appear here.");
+
+    fireEvent.change(screen.getByLabelText("New folder name"), {
+      target: { value: "Work" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Add folder" }));
+
+    expect(getChromeMock().runtime.sendMessage).toHaveBeenCalledWith({
+      type: "CREATE_FOLDER",
+      name: "Work",
+    });
+
+    act(() => {
+      emitFolderStorageChange([folderWork]);
+    });
+
+    expect(await screen.findByRole("tab", { name: "Work" })).toBeInTheDocument();
   });
 
   it("shows a folder-empty state when the selected folder has no entries", async () => {
@@ -352,9 +432,7 @@ describe("App", () => {
     render(<App />);
     await screen.findByText("alpha");
 
-    fireEvent.change(screen.getByLabelText("Filter by folder"), {
-      target: { value: "f1" },
-    });
+    fireEvent.click(screen.getByRole("tab", { name: "Work" }));
 
     expect(await screen.findByText("This folder is empty.")).toBeInTheDocument();
     expect(
@@ -368,9 +446,7 @@ describe("App", () => {
     render(<App />);
     await screen.findByText("alpha");
 
-    fireEvent.change(screen.getByLabelText("Filter by folder"), {
-      target: { value: "f1" },
-    });
+    fireEvent.click(screen.getByRole("tab", { name: "Work" }));
     await screen.findByText("gamma");
 
     fireEvent.click(screen.getByRole("button", { name: "Clear all" }));
@@ -387,9 +463,7 @@ describe("App", () => {
     await screen.findByText("alpha");
     expect(screen.getByText("2 / 100")).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText("Filter by folder"), {
-      target: { value: "f1" },
-    });
+    fireEvent.click(screen.getByRole("tab", { name: "Work" }));
     await screen.findByText("gamma");
 
     expect(screen.getByText("2 / 100")).toBeInTheDocument();
@@ -402,9 +476,7 @@ describe("App", () => {
     render(<App />);
     await screen.findByText("alpha");
 
-    fireEvent.change(screen.getByLabelText("Filter by folder"), {
-      target: { value: "f1" },
-    });
+    fireEvent.click(screen.getByRole("tab", { name: "Work" }));
     await screen.findByText("gamma");
     fireEvent.click(screen.getByRole("button", { name: "Favorites only" }));
 
@@ -412,6 +484,23 @@ describe("App", () => {
       await screen.findByText("No entries match the selected folder and favorites filter."),
     ).toBeInTheDocument();
     expect(screen.queryByText("This folder is empty.")).not.toBeInTheDocument();
-    expect(screen.queryByText("No favorites yet.")).not.toBeInTheDocument();
+  });
+
+  it("renders the item header with copy, favorite, folder, and delete controls in order", async () => {
+    setStoredEntries([entryA]);
+    setStoredFolders([folderWork]);
+    render(<App />);
+    await screen.findByText("alpha");
+
+    const header = document.querySelector(".entry__header");
+    expect(header).not.toBeNull();
+
+    const controlClasses = Array.from(header?.children ?? []).map((el) => el.className);
+    expect(controlClasses).toEqual([
+      "entry__copy",
+      "entry__favorite",
+      "entry__folder-select",
+      "entry__delete",
+    ]);
   });
 });

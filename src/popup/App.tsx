@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { EntryButton } from "./EntryButton";
-import { FolderSelector } from "./FolderSelector";
+import { FolderTabs } from "./FolderTabs";
 import { useClipboardEntries } from "./useClipboardEntries";
 import { useFavoriteActions } from "./useFavoriteActions";
 import { useFolders } from "./useFolders";
@@ -30,15 +30,13 @@ export function App() {
     .filter((entry) => !showFavoritesOnly || entry.isFavorite);
   const [currentEntry, ...previousEntries] = visibleEntries;
   const statusClassName = status.isError ? "status status--error" : "status";
-  const isFolderFiltered = selectedFolderId !== null;
-  const showFilteredEmptyState =
-    entries.length > 0 && visibleEntries.length === 0 && (isFolderFiltered || showFavoritesOnly);
-  const filteredEmptyStateMessage =
-    isFolderFiltered && showFavoritesOnly
-      ? "No entries match the selected folder and favorites filter."
-      : isFolderFiltered
-        ? "This folder is empty."
-        : "No favorites yet.";
+  // A folder tab (Ungrouped or a named folder) is always selected now that
+  // there's no "All" state, so the filtered empty state fires whenever the
+  // current tab/favorites combination yields nothing but entries exist.
+  const showFilteredEmptyState = entries.length > 0 && visibleEntries.length === 0;
+  const filteredEmptyStateMessage = showFavoritesOnly
+    ? "No entries match the selected folder and favorites filter."
+    : "This folder is empty.";
   const favoritesFilterLabel = showFavoritesOnly ? "Showing favorites" : "Favorites only";
 
   return (
@@ -69,14 +67,14 @@ export function App() {
         </div>
       </header>
 
-      <FolderSelector
+      <FolderTabs
         folders={folders}
         selectedFolderId={selectedFolderId}
         onSelectFolder={selectFolder}
         onCreateFolder={createFolder}
       />
 
-      <main>
+      <main id="entries-panel">
         {entries.length === 0 && (
           <p className="empty-state">Copy text on a web page and it will appear here.</p>
         )}

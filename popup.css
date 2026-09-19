@@ -125,7 +125,7 @@ section + section {
 
 .entry {
   display: flex;
-  align-items: flex-start;
+  flex-direction: column;
   gap: 8px;
   width: 100%;
   padding: 11px 12px;
@@ -145,16 +145,34 @@ section + section {
   background: #eef2ff;
 }
 
+.entry__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
 .entry__copy {
-  flex: 1;
-  min-width: 0;
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
   padding: 0;
-  border: none;
-  color: inherit;
-  background: none;
-  font: inherit;
-  text-align: left;
+  border: 1px solid #d8deea;
+  border-radius: 6px;
+  color: #475467;
+  background: #ffffff;
+  font-size: 13px;
+  line-height: 1;
   cursor: pointer;
+}
+
+.entry__copy:hover {
+  border-color: #8ca4ef;
+  color: #33459e;
+  background: #eef2ff;
 }
 
 .entry__copy:focus-visible {
@@ -287,48 +305,54 @@ section + section {
   background: #fff8e6;
 }
 
-.folder-controls {
+.folder-tabs {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
   gap: 10px;
   margin-bottom: 14px;
-  padding: 10px 12px;
-  border: 1px solid #d8deea;
-  border-radius: 10px;
-  background: #ffffff;
 }
 
-.folder-controls__filter {
+.folder-tabs__list {
   display: flex;
-  align-items: center;
+  flex-wrap: wrap;
   gap: 6px;
-  font-size: 12px;
 }
 
-.folder-controls__label {
-  color: #667085;
-  font-weight: 700;
-}
-
-.folder-controls__filter select {
-  padding: 4px 6px;
+.folder-tab {
+  padding: 5px 10px;
   border: 1px solid #d8deea;
-  border-radius: 6px;
-  color: #172033;
+  border-radius: 999px;
+  color: #475467;
   background: #ffffff;
   font: inherit;
   font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
 }
 
-.folder-controls__create {
+.folder-tab:hover {
+  border-color: #9aa8c0;
+  background: #f4f6fb;
+}
+
+.folder-tab:focus-visible {
+  outline: 2px solid #4169e1;
+  outline-offset: 2px;
+}
+
+.folder-tab--active {
+  border-color: #8ca4ef;
+  color: #33459e;
+  background: #eef2ff;
+}
+
+.folder-tabs__create {
   display: flex;
   align-items: center;
   gap: 6px;
 }
 
-.folder-controls__create input {
+.folder-tabs__create input {
   width: 120px;
   padding: 4px 8px;
   border: 1px solid #d8deea;
@@ -337,7 +361,7 @@ section + section {
   font-size: 12px;
 }
 
-.folder-controls__add {
+.folder-tabs__add {
   padding: 5px 10px;
   border: 1px solid #8ca4ef;
   border-radius: 999px;
@@ -349,14 +373,13 @@ section + section {
   cursor: pointer;
 }
 
-.folder-controls__add:hover {
+.folder-tabs__add:hover {
   border-color: #4169e1;
   background: #e3e9ff;
 }
 
-.folder-controls__add:focus-visible,
-.folder-controls__filter select:focus-visible,
-.folder-controls__create input:focus-visible,
+.folder-tabs__add:focus-visible,
+.folder-tabs__create input:focus-visible,
 .entry__folder-select:focus-visible {
   outline: 2px solid #4169e1;
   outline-offset: 2px;

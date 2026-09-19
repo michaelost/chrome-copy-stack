@@ -17,8 +17,8 @@ src/
   popup/
     main.tsx               → React root mount
     App.tsx                 → Popup layout; composes the hooks below
-    EntryButton.tsx          → One entry's copy + favorite + folder-assign + delete controls
-    FolderSelector.tsx       → Folder filter dropdown + create-folder form
+    EntryButton.tsx          → One entry's header (copy/favorite/folder/delete) + text body
+    FolderTabs.tsx            → Folder filter tab bar (Ungrouped + folders) + create-folder form
     useClipboardEntries.ts   → Entry CRUD state/actions (takes showStatus as a param)
     useFavoriteActions.ts    → Favorite toggle action (takes showStatus as a param)
     useFolders.ts            → Folder list/selection/create/assign state+actions (takes showStatus as a param)
@@ -114,15 +114,17 @@ favorites mode. The count badge and "Clear all" visibility stay bound to
 the unfiltered `entries` total, since "Clear all" always clears everything
 regardless of any active filter.
 
-Three distinct empty states can show once `entries.length > 0` but
-`visibleEntries.length === 0`, so the message always names the actual cause:
+A folder tab (Ungrouped or a named folder) is always selected — there is no
+"All" state — so the filtered empty state can show as soon as
+`entries.length > 0` but `visibleEntries.length === 0`:
 
-- Folder filter active, favorites filter not active → "This folder is empty."
-- Favorites filter active, folder filter not active → "No favorites yet."
-- Both filters active and together produce zero results → a generic
-  "No entries match the selected folder and favorites filter." — this
-  avoids misattributing an empty result to just one filter when both are
-  narrowing the list.
+- Favorites-only is off → "This folder is empty." (also used for an empty
+  Ungrouped tab).
+- Favorites-only is on → "No entries match the selected folder and
+  favorites filter.", regardless of whether the current tab is truly empty
+  or just has no favorited entries in it — both statements are still true,
+  and distinguishing the two isn't worth a third message now that a tab is
+  always active.
 
 The transient status line is its own hook, `useStatusMessage()`, composed
 once in `App.tsx` and passed into `useClipboardEntries(showStatus)` as a
@@ -133,14 +135,20 @@ parameter — this keeps a single shared status line across `useFolders` and
 
 `useFolders.ts` owns the folder list (loaded from `getFolders()`, refreshed
 on `chrome.storage.onChanged` for `CLIPBOARD_FOLDERS_STORAGE_KEY`) and a
-local, unpersisted `selectedFolderId: string | null` — `null` means "All"
-(no filter), and the sentinel `UNGROUPED_FOLDER_ID` means "entries with no
-folder". Selection resets every time the popup re-opens.
+local, unpersisted `selectedFolderId: string` — the sentinel
+`UNGROUPED_FOLDER_ID` means "entries with no folder" and is also the
+default. There is no "All" state; a folder is always selected. Selection
+resets to Ungrouped every time the popup re-opens.
 
-- **`FolderSelector`** (rendered between the header and the entry list):
-  a `<select>` for filtering by folder (`All` / `Ungrouped` / each named
-  folder) and a small form to create a new folder. Folder rename and
-  delete are out of scope for v1.
+- **`FolderTabs`** (rendered between the header and the entry list): a
+  `role="tablist"` of `role="tab"` buttons — Ungrouped is always the first
+  tab, followed by each folder in its existing storage order (folders are
+  never sorted or reordered) — plus a small form to create a new folder.
+  Clicking a tab, or moving focus to it with `ArrowLeft`/`ArrowRight`/
+  `Home`/`End` (roving `tabIndex`, automatic activation), selects that
+  folder and filters `visibleEntries`. A new folder appears as a new tab as
+  soon as `chrome.storage.onChanged` reports it. Folder rename and delete
+  are out of scope for v1.
 - **Per-entry assignment**: each `EntryButton` renders a compact
   `<select>` (`Ungrouped` + one option per folder) bound to that entry's
   `folderId`. Changing it sends `ASSIGN_ENTRY_TO_FOLDER`, which both moves
@@ -171,8 +179,8 @@ folder". Selection resets every time the popup re-opens.
 - **Header**: title, an "Add from clipboard" button, a "Favorites only"
   toggle, a count badge (`N / 100`), and a "Clear all" button (only shown
   once there's at least one entry).
-- **Folder controls** (`FolderSelector`, below the header): folder filter
-  `<select>` and a create-folder form.
+- **Folder tabs** (`FolderTabs`, below the header): a tab bar (Ungrouped
+  first, then each folder in storage order) and a create-folder form.
 - **Empty state**: shown when there are zero entries at all.
 - **Filtered empty state**: shown instead — with the specific wording
   described under "Filtering" above — when there's at least one entry
@@ -184,12 +192,14 @@ folder". Selection resets every time the popup re-opens.
 - **Status line**: a transient message under the list (green for success,
   red for errors), auto-clearing after 1800ms.
 
-Each `EntryButton` renders four controls, in this order: clicking the text
-copies it to the system clipboard (`navigator.clipboard.writeText`) and
-sends `ACTIVATE_CLIPBOARD_ENTRY`; the star button sends
-`TOGGLE_FAVORITE_ENTRY`; the folder `<select>` sends
-`ASSIGN_ENTRY_TO_FOLDER`; the small "×" button sends
-`REMOVE_CLIPBOARD_ENTRY`. None of the three side controls copy anything.
+Each `EntryButton` renders a header row of four controls above the entry
+text, in this fixed order: a copy icon button copies the text to the system
+clipboard (`navigator.clipboard.writeText`) and sends
+`ACTIVATE_CLIPBOARD_ENTRY`; the star button sends `TOGGLE_FAVORITE_ENTRY`;
+the folder `<select>` sends `ASSIGN_ENTRY_TO_FOLDER`; the small "×" button
+sends `REMOVE_CLIPBOARD_ENTRY`. The entry text itself, rendered below the
+header, is plain (non-interactive) content — only the header's copy button
+triggers a copy.
 
 ### Actions and their status messages
 
@@ -197,7 +207,7 @@ sends `ACTIVATE_CLIPBOARD_ENTRY`; the star button sends
 
 | Action | Success | Failure |
 |---|---|---|
-| Click an entry (copy) | "Copied to clipboard" | "Could not copy this item" (clipboard write failed — nothing sent to storage) or "Copied, but history was not updated" (clipboard write succeeded, but the activate message failed) |
+| Click an entry's copy button | "Copied to clipboard" | "Could not copy this item" (clipboard write failed — nothing sent to storage) or "Copied, but history was not updated" (clipboard write succeeded, but the activate message failed) |
 | Click an entry's "×" (remove) | *(silent)* | "Could not remove this item" |
 | Click an entry's star (favorite toggle) | *(silent)* | "Could not update favorite" |
 | Change an entry's folder select (assign) | *(silent)* | "Could not move this item" |

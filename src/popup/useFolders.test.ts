@@ -1,7 +1,6 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { getChromeMock, setStoredFolders } from "./test-setup";
-import { CLIPBOARD_FOLDERS_STORAGE_KEY } from "../storage";
+import { emitFolderStorageChange, getChromeMock, setStoredFolders } from "./test-setup";
 import { UNGROUPED_FOLDER_ID, useFolders } from "./useFolders";
 
 const folderA: Folder = { id: "f1", name: "Work", createdAt: 1 };
@@ -21,13 +20,6 @@ const ungroupedEntry: ClipboardEntry = {
   folderId: null,
   isFavorite: false,
 };
-
-function emitFolderStorageChange(folders: Folder[]): void {
-  setStoredFolders(folders);
-  const calls = getChromeMock().storage.onChanged.addListener.mock.calls;
-  const listener = calls[calls.length - 1]?.[0];
-  listener?.({ [CLIPBOARD_FOLDERS_STORAGE_KEY]: { newValue: folders } }, "local");
-}
 
 describe("useFolders", () => {
   it("loads folders from storage on mount", async () => {
@@ -52,12 +44,12 @@ describe("useFolders", () => {
     await waitFor(() => expect(result.current.folders).toEqual([folderA, folderB]));
   });
 
-  it("defaults selectedFolderId to null (no filter) and updates it via selectFolder", async () => {
+  it("defaults selectedFolderId to Ungrouped and updates it via selectFolder", async () => {
     setStoredFolders([]);
     const showStatus = vi.fn();
     const { result } = renderHook(() => useFolders(showStatus));
 
-    expect(result.current.selectedFolderId).toBeNull();
+    expect(result.current.selectedFolderId).toBe(UNGROUPED_FOLDER_ID);
 
     act(() => {
       result.current.selectFolder("f1");
@@ -154,24 +146,12 @@ describe("useFolders", () => {
   });
 
   describe("matchesSelectedFolder", () => {
-    it("matches every entry when no folder is selected (All)", async () => {
+    it("matches only entries with folderId null by default (Ungrouped)", async () => {
       setStoredFolders([folderA]);
       const showStatus = vi.fn();
       const { result } = renderHook(() => useFolders(showStatus));
 
-      expect(result.current.matchesSelectedFolder(entryInFolderA)).toBe(true);
-      expect(result.current.matchesSelectedFolder(ungroupedEntry)).toBe(true);
-    });
-
-    it("matches only entries with folderId null when Ungrouped is selected", async () => {
-      setStoredFolders([folderA]);
-      const showStatus = vi.fn();
-      const { result } = renderHook(() => useFolders(showStatus));
-
-      act(() => {
-        result.current.selectFolder(UNGROUPED_FOLDER_ID);
-      });
-
+      expect(result.current.selectedFolderId).toBe(UNGROUPED_FOLDER_ID);
       expect(result.current.matchesSelectedFolder(entryInFolderA)).toBe(false);
       expect(result.current.matchesSelectedFolder(ungroupedEntry)).toBe(true);
     });
