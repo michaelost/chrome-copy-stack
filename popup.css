@@ -14,7 +14,7 @@ body {
   width: 360px;
   max-height: 520px;
   margin: 0;
-  padding: 18px;
+  padding: 14px;
   overflow-y: auto;
 }
 
@@ -23,13 +23,14 @@ body {
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 18px;
+  margin-bottom: 12px;
 }
 
 .eyebrow,
 h1,
 h2,
-.status {
+.status,
+.shortcut-hint {
   margin: 0;
 }
 
@@ -47,8 +48,14 @@ h1 {
   letter-spacing: -0.03em;
 }
 
+.shortcut-hint {
+  margin-top: 2px;
+  color: #98a2b3;
+  font-size: 10px;
+}
+
 h2 {
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   color: #667085;
   font-size: 11px;
   letter-spacing: 0.08em;
@@ -56,7 +63,7 @@ h2 {
 }
 
 section + section {
-  margin-top: 18px;
+  margin-top: 12px;
 }
 
 .header__actions {
@@ -120,15 +127,15 @@ section + section {
 
 .history-list {
   display: grid;
-  gap: 8px;
+  gap: 6px;
 }
 
 .entry {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   width: 100%;
-  padding: 11px 12px;
+  padding: 9px 10px;
   border: 1px solid #d8deea;
   border-radius: 10px;
   background: #ffffff;
@@ -217,6 +224,35 @@ section + section {
   -webkit-line-clamp: 4;
   font-size: 13px;
   line-height: 1.45;
+}
+
+.entry__text--expanded {
+  display: block;
+  overflow: visible;
+  -webkit-line-clamp: unset;
+}
+
+.entry__expand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 2px 0 0;
+  border: none;
+  color: #8ca4ef;
+  background: none;
+  font-size: 10px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.entry__expand:hover {
+  color: #4169e1;
+}
+
+.entry__expand:focus-visible {
+  outline: 2px solid #4169e1;
+  outline-offset: 2px;
 }
 
 .empty-state {
@@ -308,8 +344,8 @@ section + section {
 .folder-tabs {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin-bottom: 14px;
+  gap: 8px;
+  margin-bottom: 10px;
 }
 
 .folder-tabs__list {
