@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import {
   emitFolderStorageChange,
@@ -502,5 +502,44 @@ describe("App", () => {
       "entry__folder-select",
       "entry__delete",
     ]);
+  });
+
+  it("shows a keyboard-shortcut hint in the header", async () => {
+    setStoredEntries([]);
+    render(<App />);
+    await screen.findByText("Copy text on a web page and it will appear here.");
+
+    expect(screen.getByText(/to open/)).toBeInTheDocument();
+  });
+
+  it("does not show an expand toggle for entry text that isn't clamped", async () => {
+    setStoredEntries([entryA]);
+    render(<App />);
+    await screen.findByText("alpha");
+
+    expect(screen.queryByRole("button", { name: "Show more" })).not.toBeInTheDocument();
+  });
+
+  it("shows an expand toggle for clamped entry text and expands it on click", async () => {
+    setStoredEntries([entryA]);
+    const scrollHeightSpy = vi
+      .spyOn(HTMLElement.prototype, "scrollHeight", "get")
+      .mockReturnValue(100);
+    const clientHeightSpy = vi
+      .spyOn(HTMLElement.prototype, "clientHeight", "get")
+      .mockReturnValue(60);
+
+    render(<App />);
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Show more" })).toBeInTheDocument(),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Show more" }));
+
+    expect(screen.getByRole("button", { name: "Show less" })).toBeInTheDocument();
+    expect(document.querySelector(".entry__text")).toHaveClass("entry__text--expanded");
+
+    scrollHeightSpy.mockRestore();
+    clientHeightSpy.mockRestore();
   });
 });

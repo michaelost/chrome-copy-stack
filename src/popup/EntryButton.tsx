@@ -1,3 +1,5 @@
+import { useLayoutEffect, useRef, useState } from "react";
+
 interface EntryButtonProps {
   entry: ClipboardEntry;
   variant: "current" | "history";
@@ -22,6 +24,20 @@ export function EntryButton({
     ? "entry__favorite entry__favorite--active"
     : "entry__favorite";
   const favoriteLabel = entry.isFavorite ? "Remove from favorites" : "Add to favorites";
+
+  const textRef = useRef<HTMLParagraphElement>(null);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [isClamped, setIsClamped] = useState(false);
+
+  useLayoutEffect(() => {
+    const element = textRef.current;
+
+    if (!element || isExpanded) {
+      return;
+    }
+
+    setIsClamped(element.scrollHeight > element.clientHeight + 1);
+  }, [entry.text, isExpanded]);
 
   return (
     <div className={className}>
@@ -72,7 +88,23 @@ export function EntryButton({
           <span aria-hidden="true">×</span>
         </button>
       </div>
-      <p className="entry__text">{entry.text}</p>
+      <p
+        ref={textRef}
+        className={isExpanded ? "entry__text entry__text--expanded" : "entry__text"}
+      >
+        {entry.text}
+      </p>
+      {isClamped && (
+        <button
+          type="button"
+          className="entry__expand"
+          aria-expanded={isExpanded}
+          aria-label={isExpanded ? "Show less" : "Show more"}
+          onClick={() => setIsExpanded((value) => !value)}
+        >
+          <span aria-hidden="true">{isExpanded ? "▲" : "▼"}</span>
+        </button>
+      )}
     </div>
   );
 }

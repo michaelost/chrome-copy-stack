@@ -38,6 +38,8 @@ export function App() {
     ? "No entries match the selected folder and favorites filter."
     : "This folder is empty.";
   const favoritesFilterLabel = showFavoritesOnly ? "Showing favorites" : "Favorites only";
+  const isMac = navigator.platform.toUpperCase().includes("MAC");
+  const shortcutHint = isMac ? "⌘⇧K to open" : "Ctrl+Shift+K to open";
 
   return (
     <>
@@ -45,6 +47,7 @@ export function App() {
         <div>
           <p className="eyebrow">Clipboard history</p>
           <h1>Copy Stack</h1>
+          <p className="shortcut-hint">{shortcutHint}</p>
         </div>
         <div className="header__actions">
           <button type="button" className="add-from-clipboard" onClick={addFromClipboard}>
