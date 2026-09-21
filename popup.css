@@ -15,11 +15,14 @@ body {
   max-height: 520px;
   margin: 0;
   padding: 14px;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .header {
   display: flex;
+  flex-shrink: 0;
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
@@ -64,6 +67,37 @@ h2 {
 
 section + section {
   margin-top: 12px;
+}
+
+.entries-scroll {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+
+main {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.scroll-hint {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  height: 26px;
+  padding-bottom: 2px;
+  color: #98a2b3;
+  font-size: 11px;
+  line-height: 1;
+  background: linear-gradient(to bottom, rgb(244 246 251 / 0%), #f4f6fb 75%);
+  pointer-events: none;
 }
 
 .header__actions {
@@ -255,6 +289,29 @@ section + section {
   outline-offset: 2px;
 }
 
+.entry__collapse-top {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0 0 2px;
+  border: none;
+  color: #8ca4ef;
+  background: none;
+  font-size: 10px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.entry__collapse-top:hover {
+  color: #4169e1;
+}
+
+.entry__collapse-top:focus-visible {
+  outline: 2px solid #4169e1;
+  outline-offset: 2px;
+}
+
 .empty-state {
   margin: 42px 20px;
   color: #667085;
@@ -264,6 +321,7 @@ section + section {
 }
 
 .status {
+  flex-shrink: 0;
   position: sticky;
   bottom: 0;
   min-height: 18px;
@@ -341,8 +399,38 @@ section + section {
   background: #fff8e6;
 }
 
+.default-folder {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+
+.default-folder__label {
+  color: #667085;
+  font-weight: 700;
+}
+
+.default-folder select {
+  padding: 4px 6px;
+  border: 1px solid #d8deea;
+  border-radius: 6px;
+  color: #172033;
+  background: #ffffff;
+  font: inherit;
+  font-size: 12px;
+}
+
+.default-folder select:focus-visible {
+  outline: 2px solid #4169e1;
+  outline-offset: 2px;
+}
+
 .folder-tabs {
   display: flex;
+  flex-shrink: 0;
   flex-direction: column;
   gap: 8px;
   margin-bottom: 10px;

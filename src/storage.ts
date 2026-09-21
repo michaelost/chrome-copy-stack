@@ -1,5 +1,6 @@
 export const CLIPBOARD_STORAGE_KEY = "clipboardEntries";
 export const CLIPBOARD_FOLDERS_STORAGE_KEY = "clipboardFolders";
+export const DEFAULT_FOLDER_STORAGE_KEY = "clipboardDefaultFolder";
 
 function normalizeClipboardEntry(entry: ClipboardEntry): ClipboardEntry {
   return {
@@ -31,4 +32,16 @@ export async function getFolders(): Promise<Folder[]> {
 
 export async function saveFolders(folders: Folder[]): Promise<void> {
   await chrome.storage.local.set({ [CLIPBOARD_FOLDERS_STORAGE_KEY]: folders });
+}
+
+export async function getDefaultFolderId(): Promise<string | null> {
+  const result = await chrome.storage.local.get({
+    [DEFAULT_FOLDER_STORAGE_KEY]: null as string | null,
+  });
+
+  return result[DEFAULT_FOLDER_STORAGE_KEY] as string | null;
+}
+
+export async function saveDefaultFolderId(folderId: string | null): Promise<void> {
+  await chrome.storage.local.set({ [DEFAULT_FOLDER_STORAGE_KEY]: folderId });
 }

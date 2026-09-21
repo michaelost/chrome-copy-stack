@@ -4,6 +4,7 @@ import {
   emitFolderStorageChange,
   emitStorageChange,
   getChromeMock,
+  setStoredDefaultFolder,
   setStoredEntries,
   setStoredFolders,
 } from "./test-setup";
@@ -541,5 +542,119 @@ describe("App", () => {
 
     scrollHeightSpy.mockRestore();
     clientHeightSpy.mockRestore();
+  });
+
+  it("shows a top collapse control only while expanded, and it collapses the entry", async () => {
+    setStoredEntries([entryA]);
+    const scrollHeightSpy = vi
+      .spyOn(HTMLElement.prototype, "scrollHeight", "get")
+      .mockReturnValue(100);
+    const clientHeightSpy = vi
+      .spyOn(HTMLElement.prototype, "clientHeight", "get")
+      .mockReturnValue(60);
+
+    render(<App />);
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Show more" })).toBeInTheDocument(),
+    );
+    expect(screen.queryByRole("button", { name: "Collapse" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Show more" }));
+
+    const topCollapseButton = screen.getByRole("button", { name: "Collapse" });
+    expect(topCollapseButton).toBeInTheDocument();
+    expect(document.querySelector(".entry__text")).toHaveClass("entry__text--expanded");
+
+    fireEvent.click(topCollapseButton);
+
+    expect(screen.queryByRole("button", { name: "Collapse" })).not.toBeInTheDocument();
+    expect(document.querySelector(".entry__text")).not.toHaveClass("entry__text--expanded");
+    expect(screen.getByRole("button", { name: "Show more" })).toBeInTheDocument();
+
+    scrollHeightSpy.mockRestore();
+    clientHeightSpy.mockRestore();
+  });
+
+  it("shows a bottom scroll hint when the entries list overflows", async () => {
+    setStoredEntries([entryA, entryB]);
+    const scrollHeightSpy = vi
+      .spyOn(HTMLElement.prototype, "scrollHeight", "get")
+      .mockReturnValue(200);
+    const clientHeightSpy = vi
+      .spyOn(HTMLElement.prototype, "clientHeight", "get")
+      .mockReturnValue(100);
+
+    render(<App />);
+    await screen.findByText("alpha");
+
+    const hint = document.querySelector(".scroll-hint");
+    expect(hint).not.toBeNull();
+    expect(hint).toHaveAttribute("aria-hidden", "true");
+
+    scrollHeightSpy.mockRestore();
+    clientHeightSpy.mockRestore();
+  });
+
+  it("does not show the scroll hint when there is nothing more to scroll to", async () => {
+    setStoredEntries([entryA]);
+    render(<App />);
+    await screen.findByText("alpha");
+
+    expect(document.querySelector(".scroll-hint")).toBeNull();
+  });
+
+  it("lists Ungrouped and every folder in the default-folder dropdown, defaulting to Ungrouped", async () => {
+    setStoredEntries([]);
+    setStoredFolders([folderWork, folderZeta]);
+    render(<App />);
+    await screen.findByText("Copy text on a web page and it will appear here.");
+
+    const select = screen.getByLabelText("New items go to") as HTMLSelectElement;
+    const optionLabels = Array.from(select.options).map((option) => option.text);
+    expect(optionLabels).toEqual(["Ungrouped", "Work", "Zeta"]);
+    expect(select.value).toBe("");
+  });
+
+  it("reflects a persisted default folder in the dropdown", async () => {
+    setStoredEntries([]);
+    setStoredFolders([folderWork]);
+    setStoredDefaultFolder("f1");
+    render(<App />);
+    await screen.findByText("Copy text on a web page and it will appear here.");
+
+    const select = screen.getByLabelText("New items go to") as HTMLSelectElement;
+    await waitFor(() => expect(select.value).toBe("f1"));
+  });
+
+  it("sends SET_DEFAULT_FOLDER when a folder is chosen as the default", async () => {
+    setStoredEntries([]);
+    setStoredFolders([folderWork]);
+    render(<App />);
+    await screen.findByText("Copy text on a web page and it will appear here.");
+
+    fireEvent.change(screen.getByLabelText("New items go to"), {
+      target: { value: "f1" },
+    });
+
+    expect(getChromeMock().runtime.sendMessage).toHaveBeenCalledWith({
+      type: "SET_DEFAULT_FOLDER",
+      folderId: "f1",
+    });
+  });
+
+  it("sends SET_DEFAULT_FOLDER with null when Ungrouped is chosen as the default", async () => {
+    setStoredEntries([]);
+    setStoredFolders([folderWork]);
+    setStoredDefaultFolder("f1");
+    render(<App />);
+    const select = await screen.findByLabelText("New items go to");
+    await waitFor(() => expect((select as HTMLSelectElement).value).toBe("f1"));
+
+    fireEvent.change(select, { target: { value: "" } });
+
+    expect(getChromeMock().runtime.sendMessage).toHaveBeenCalledWith({
+      type: "SET_DEFAULT_FOLDER",
+      folderId: null,
+    });
   });
 });

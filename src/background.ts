@@ -1,4 +1,11 @@
-import { getClipboardEntries, getFolders, saveClipboardEntries, saveFolders } from "./storage";
+import {
+  getClipboardEntries,
+  getDefaultFolderId,
+  getFolders,
+  saveClipboardEntries,
+  saveDefaultFolderId,
+  saveFolders,
+} from "./storage";
 
 (() => {
   const MAX_ENTRIES = 100;
@@ -27,8 +34,22 @@ import { getClipboardEntries, getFolders, saveClipboardEntries, saveFolders } fr
       (message.type === "CREATE_FOLDER" && typeof message.name === "string") ||
       (message.type === "ASSIGN_ENTRY_TO_FOLDER" &&
         typeof message.id === "string" &&
+        (message.folderId === null || typeof message.folderId === "string")) ||
+      (message.type === "SET_DEFAULT_FOLDER" &&
         (message.folderId === null || typeof message.folderId === "string"))
     );
+  }
+
+  async function resolveDefaultFolderId(): Promise<string | null> {
+    const defaultFolderId = await getDefaultFolderId();
+
+    if (defaultFolderId === null) {
+      return null;
+    }
+
+    const folders = await getFolders();
+
+    return folders.some((folder) => folder.id === defaultFolderId) ? defaultFolderId : null;
   }
 
   async function addEntry(text: string): Promise<void> {
@@ -40,12 +61,15 @@ import { getClipboardEntries, getFolders, saveClipboardEntries, saveFolders } fr
       throw new Error("Clipboard text is too long to save");
     }
 
-    const entries = await getClipboardEntries();
+    const [entries, folderId] = await Promise.all([
+      getClipboardEntries(),
+      resolveDefaultFolderId(),
+    ]);
     const entry: ClipboardEntry = {
       id: crypto.randomUUID(),
       text,
       copiedAt: Date.now(),
-      folderId: null,
+      folderId,
       isFavorite: false,
     };
     const nextEntries = [
@@ -135,6 +159,18 @@ import { getClipboardEntries, getFolders, saveClipboardEntries, saveFolders } fr
     await saveClipboardEntries(nextEntries);
   }
 
+  async function setDefaultFolder(folderId: string | null): Promise<void> {
+    if (folderId !== null) {
+      const folders = await getFolders();
+
+      if (!folders.some((folder) => folder.id === folderId)) {
+        throw new Error("Folder not found");
+      }
+    }
+
+    await saveDefaultFolderId(folderId);
+  }
+
   function enqueueStorageUpdate(update: () => Promise<void>): Promise<void> {
     const queuedUpdate = storageUpdateQueue.then(update);
     storageUpdateQueue = queuedUpdate.then(
@@ -162,6 +198,8 @@ import { getClipboardEntries, getFolders, saveClipboardEntries, saveFolders } fr
           return createFolder(message.name);
         case "ASSIGN_ENTRY_TO_FOLDER":
           return assignEntryToFolder(message.id, message.folderId);
+        case "SET_DEFAULT_FOLDER":
+          return setDefaultFolder(message.folderId);
         default:
           return message satisfies never;
       }
