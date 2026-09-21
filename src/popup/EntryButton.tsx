@@ -88,6 +88,17 @@ export function EntryButton({
           <span aria-hidden="true">×</span>
         </button>
       </div>
+      {isExpanded && (
+        <button
+          type="button"
+          className="entry__collapse-top"
+          aria-label="Collapse"
+          title="Collapse"
+          onClick={() => setIsExpanded(false)}
+        >
+          <span aria-hidden="true">▲</span>
+        </button>
+      )}
       <p
         ref={textRef}
         className={isExpanded ? "entry__text entry__text--expanded" : "entry__text"}

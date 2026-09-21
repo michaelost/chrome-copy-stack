@@ -289,6 +289,29 @@ main {
   outline-offset: 2px;
 }
 
+.entry__collapse-top {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0 0 2px;
+  border: none;
+  color: #8ca4ef;
+  background: none;
+  font-size: 10px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.entry__collapse-top:hover {
+  color: #4169e1;
+}
+
+.entry__collapse-top:focus-visible {
+  outline: 2px solid #4169e1;
+  outline-offset: 2px;
+}
+
 .empty-state {
   margin: 42px 20px;
   color: #667085;
