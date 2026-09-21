@@ -18,6 +18,8 @@ export function App() {
     createFolder,
     assignEntryToFolder,
     matchesSelectedFolder,
+    defaultFolderId,
+    selectDefaultFolder,
   } = useFolders(showStatus);
   // Favorites: local, not-persisted filter (resets every popup open) that
   // narrows `entries` before the current/previous split. The count badge
@@ -101,6 +103,24 @@ export function App() {
           )}
         </div>
       </header>
+
+      <label className="default-folder">
+        <span className="default-folder__label">New items go to</span>
+        <select
+          value={defaultFolderId ?? ""}
+          onChange={(event) => {
+            const value = event.target.value;
+            void selectDefaultFolder(value === "" ? null : value);
+          }}
+        >
+          <option value="">Ungrouped</option>
+          {folders.map((folder) => (
+            <option key={folder.id} value={folder.id}>
+              {folder.name}
+            </option>
+          ))}
+        </select>
+      </label>
 
       <FolderTabs
         folders={folders}

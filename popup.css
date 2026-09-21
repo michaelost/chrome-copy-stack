@@ -399,8 +399,38 @@ main {
   background: #fff8e6;
 }
 
+.default-folder {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+
+.default-folder__label {
+  color: #667085;
+  font-weight: 700;
+}
+
+.default-folder select {
+  padding: 4px 6px;
+  border: 1px solid #d8deea;
+  border-radius: 6px;
+  color: #172033;
+  background: #ffffff;
+  font: inherit;
+  font-size: 12px;
+}
+
+.default-folder select:focus-visible {
+  outline: 2px solid #4169e1;
+  outline-offset: 2px;
+}
+
 .folder-tabs {
   display: flex;
+  flex-shrink: 0;
   flex-direction: column;
   gap: 8px;
   margin-bottom: 10px;

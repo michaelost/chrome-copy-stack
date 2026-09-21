@@ -19,7 +19,8 @@ type ExtensionMessage =
   | { type: "CLEAR_CLIPBOARD_ENTRIES" }
   | { type: "TOGGLE_FAVORITE_ENTRY"; id: string }
   | { type: "CREATE_FOLDER"; name: string }
-  | { type: "ASSIGN_ENTRY_TO_FOLDER"; id: string; folderId: string | null };
+  | { type: "ASSIGN_ENTRY_TO_FOLDER"; id: string; folderId: string | null }
+  | { type: "SET_DEFAULT_FOLDER"; folderId: string | null };
 
 type ExtensionResponse =
   | { ok: true }

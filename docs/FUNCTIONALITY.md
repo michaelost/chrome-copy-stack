@@ -61,7 +61,11 @@ Stored under `chrome.storage.local` key `"clipboardEntries"` (constant
 `CLIPBOARD_STORAGE_KEY` in `src/storage.ts`), capped at `MAX_ENTRIES = 100`
 and `MAX_TEXT_LENGTH = 20_000` characters (both defined in `background.ts`).
 Folders use a separate key, `"clipboardFolders"` (`CLIPBOARD_FOLDERS_STORAGE_KEY`),
-with matching `getFolders()`/`saveFolders()` accessors in `src/storage.ts`.
+with matching `getFolders()`/`saveFolders()` accessors in `src/storage.ts`. The
+default folder for newly added entries (see "Default folder for new items"
+below) is a third key, `"clipboardDefaultFolder"` (`DEFAULT_FOLDER_STORAGE_KEY`),
+holding a single `string | null` (`null` = Ungrouped), with matching
+`getDefaultFolderId()`/`saveDefaultFolderId()` accessors.
 
 ## How data gets in and out
 
@@ -70,7 +74,8 @@ Everything funnels through one `chrome.runtime.onMessage` listener in
 
 | Message | Sent by | Effect |
 |---|---|---|
-| `ADD_CLIPBOARD_ENTRY { text }` | `content.ts` on page copy; popup's "Add from clipboard" button | Adds a new entry at the top. If `text` already exists verbatim, the old copy is removed and the entry moves to the top instead of duplicating. No-ops silently if `text` is empty/whitespace; responds with `{ok:false}` (surfaced as an error status in the popup) if `text` is longer than `MAX_TEXT_LENGTH`. |
+| `ADD_CLIPBOARD_ENTRY { text }` | `content.ts` on page copy; popup's "Add from clipboard" button | Adds a new entry at the top, with `folderId` set to the persisted default folder (validated against existing folders; `null`/Ungrouped if unset or stale — see "Default folder for new items" below). If `text` already exists verbatim, the old copy is removed and a fresh entry (new `id`, current default `folderId`) is created at the top instead of duplicating — this already discarded the old entry's `id`/`folderId` before this feature existed (it was always reset to `null`); it now resets to whatever the default folder is at add-time. No-ops silently if `text` is empty/whitespace; responds with `{ok:false}` (surfaced as an error status in the popup) if `text` is longer than `MAX_TEXT_LENGTH`. |
+| `SET_DEFAULT_FOLDER { folderId }` | Popup, the "New items go to" dropdown above the folder tabs | Persists `folderId` (`null` = Ungrouped) as the folder new entries are created in. Throws if `folderId` doesn't match an existing folder. |
 | `ACTIVATE_CLIPBOARD_ENTRY { id }` | Popup, clicking an entry | Moves that entry to the top with a fresh `copiedAt`. |
 | `REMOVE_CLIPBOARD_ENTRY { id }` | Popup, clicking an entry's delete button | Removes just that entry. |
 | `CLEAR_CLIPBOARD_ENTRIES` | Popup, "Clear all" button | Empties the entire list, regardless of any active folder or favorites filter. |
@@ -78,7 +83,7 @@ Everything funnels through one `chrome.runtime.onMessage` listener in
 | `CREATE_FOLDER { name }` | Popup, folder controls' "Add folder" form | Appends a new `Folder` (`id`, trimmed `name`, `createdAt`). No-ops silently if `name` is empty/whitespace. |
 | `ASSIGN_ENTRY_TO_FOLDER { id, folderId }` | Popup, an entry's per-entry folder select | Sets that entry's `folderId`. `folderId: null` returns the entry to Ungrouped. Throws if `id` doesn't match an entry, or if `folderId` doesn't match an existing folder. |
 
-All seven are serialized through an in-memory `enqueueStorageUpdate` queue in
+All eight are serialized through an in-memory `enqueueStorageUpdate` queue in
 `background.ts`, so concurrent messages (e.g. a page copy firing while the
 popup is also mutating storage) can't race each other. Every handler
 responds with `ExtensionResponse` (`{ok:true}` or `{ok:false,error}`).
@@ -157,6 +162,33 @@ resets to Ungrouped every time the popup re-opens.
 - **Filtering**: contributes `matchesSelectedFolder` to the AND-composed
   `visibleEntries` derivation described above.
 
+### Default folder for new items
+
+`useFolders.ts` also owns `defaultFolderId: string | null` (`null` =
+Ungrouped) — the folder every *newly created* entry is placed in, whether
+added via `content.ts`'s page-copy capture or the popup's "Add from
+clipboard" button (both funnel through the same `ADD_CLIPBOARD_ENTRY`
+handler in `background.ts`, which resolves and validates the persisted
+default at write time). Unlike `selectedFolderId` (the view filter), this
+*is* persisted (`DEFAULT_FOLDER_STORAGE_KEY`) so it survives popup close/
+reopen and extension reload.
+
+- **UI**: a `<select>` labeled "New items go to", rendered above
+  `FolderTabs`, listing Ungrouped first then every folder. Changing it
+  sends `SET_DEFAULT_FOLDER`.
+- **Validation on load**: every time folders are (re)loaded — on mount and
+  on any `chrome.storage.onChanged` for either the folders or default-folder
+  key — `useFolders.ts` checks the persisted default folder against the
+  current folder list. If it no longer matches an existing folder, the hook
+  resets both its own state *and* the persisted value to Ungrouped (`null`)
+  immediately, rather than leaving a stale id in UI state until the next add.
+- **Enforcement at write time**: `background.ts`'s `addEntry()` independently
+  re-validates the persisted default folder against current folders before
+  applying it to a new entry (falling back to `null` if it's stale), so an
+  entry can never be created with a `folderId` that doesn't exist — this
+  holds even if a page copy is captured while the popup isn't open to have
+  run its own validation pass.
+
 ## Favorites
 
 - Each entry can be marked/unmarked as a favorite via its star button in
@@ -179,6 +211,8 @@ resets to Ungrouped every time the popup re-opens.
 - **Header**: title, an "Add from clipboard" button, a "Favorites only"
   toggle, a count badge (`N / 100`), and a "Clear all" button (only shown
   once there's at least one entry).
+- **Default folder select** (above the folder tabs): "New items go to"
+  dropdown — see "Default folder for new items" above.
 - **Folder tabs** (`FolderTabs`, below the header): a tab bar (Ungrouped
   first, then each folder in storage order) and a create-folder form.
 - **Empty state**: shown when there are zero entries at all.
@@ -212,6 +246,7 @@ triggers a copy.
 | Click an entry's star (favorite toggle) | *(silent)* | "Could not update favorite" |
 | Change an entry's folder select (assign) | *(silent)* | "Could not move this item" |
 | Create a folder | "Folder created" | "Could not create folder" ("Folder name is required" if blank, checked client-side before sending anything) |
+| Change the "New items go to" default-folder select | *(silent)* | "Could not set default folder" |
 | "Clear all" | *(silent)* | "Could not clear clipboard history" |
 | "Add from clipboard" | "Added from clipboard" | "Could not read clipboard" (read failed/denied), "Clipboard is empty" (blank/whitespace-only, checked client-side before sending anything), or "Could not add clipboard item" (storage-add failed) |
 | Initial load / any storage refresh | *(silent)* | "Could not load clipboard history" / "Could not load folders" |

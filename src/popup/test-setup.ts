@@ -1,7 +1,11 @@
 import "@testing-library/jest-dom/vitest";
 import { cleanup } from "@testing-library/react";
 import { afterEach, beforeEach, vi } from "vitest";
-import { CLIPBOARD_FOLDERS_STORAGE_KEY, CLIPBOARD_STORAGE_KEY } from "../storage";
+import {
+  CLIPBOARD_FOLDERS_STORAGE_KEY,
+  CLIPBOARD_STORAGE_KEY,
+  DEFAULT_FOLDER_STORAGE_KEY,
+} from "../storage";
 
 type StorageChangeListener = (
   changes: Record<string, chrome.storage.StorageChange>,
@@ -65,6 +69,10 @@ export function setStoredEntries(entries: ClipboardEntry[]): void {
 
 export function setStoredFolders(folders: Folder[]): void {
   storedData[CLIPBOARD_FOLDERS_STORAGE_KEY] = folders;
+}
+
+export function setStoredDefaultFolder(folderId: string | null): void {
+  storedData[DEFAULT_FOLDER_STORAGE_KEY] = folderId;
 }
 
 export function emitStorageChange(entries: ClipboardEntry[]): void {
