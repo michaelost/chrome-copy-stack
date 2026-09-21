@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { EntryButton } from "./EntryButton";
 import { FolderTabs } from "./FolderTabs";
 import { useClipboardEntries } from "./useClipboardEntries";
@@ -41,6 +41,38 @@ export function App() {
   const isMac = navigator.platform.toUpperCase().includes("MAC");
   const shortcutHint = isMac ? "⌘⇧K to open" : "Ctrl+Shift+K to open";
 
+  // Purely a visual cue that the entries list has more content below the
+  // fold; recomputed on scroll and whenever the list's own size changes
+  // (new/removed entries, an entry expanding/collapsing).
+  const mainRef = useRef<HTMLElement>(null);
+  const [hasMoreBelow, setHasMoreBelow] = useState(false);
+
+  useLayoutEffect(() => {
+    const element = mainRef.current;
+
+    if (!element) {
+      return;
+    }
+
+    function updateHasMoreBelow(): void {
+      if (!element) {
+        return;
+      }
+
+      setHasMoreBelow(element.scrollHeight - element.clientHeight - element.scrollTop > 1);
+    }
+
+    updateHasMoreBelow();
+    element.addEventListener("scroll", updateHasMoreBelow);
+    const resizeObserver = new ResizeObserver(updateHasMoreBelow);
+    resizeObserver.observe(element);
+
+    return () => {
+      element.removeEventListener("scroll", updateHasMoreBelow);
+      resizeObserver.disconnect();
+    };
+  }, []);
+
   return (
     <>
       <header className="header">
@@ -77,48 +109,56 @@ export function App() {
         onCreateFolder={createFolder}
       />
 
-      <main id="entries-panel">
-        {entries.length === 0 && (
-          <p className="empty-state">Copy text on a web page and it will appear here.</p>
-        )}
+      <div className="entries-scroll">
+        <main id="entries-panel" ref={mainRef}>
+          {entries.length === 0 && (
+            <p className="empty-state">Copy text on a web page and it will appear here.</p>
+          )}
 
-        {showFilteredEmptyState && <p className="empty-state">{filteredEmptyStateMessage}</p>}
+          {showFilteredEmptyState && <p className="empty-state">{filteredEmptyStateMessage}</p>}
 
-        {currentEntry && (
-          <section>
-            <h2>Current</h2>
-            <EntryButton
-              entry={currentEntry}
-              variant="current"
-              onCopy={copyEntry}
-              onRemove={removeEntry}
-              onToggleFavorite={toggleFavorite}
-              folders={folders}
-              onAssignFolder={assignEntryToFolder}
-            />
-          </section>
-        )}
+          {currentEntry && (
+            <section>
+              <h2>Current</h2>
+              <EntryButton
+                entry={currentEntry}
+                variant="current"
+                onCopy={copyEntry}
+                onRemove={removeEntry}
+                onToggleFavorite={toggleFavorite}
+                folders={folders}
+                onAssignFolder={assignEntryToFolder}
+              />
+            </section>
+          )}
 
-        {previousEntries.length > 0 && (
-          <section>
-            <h2>Previous</h2>
-            <div className="history-list">
-              {previousEntries.map((entry) => (
-                <EntryButton
-                  key={entry.id}
-                  entry={entry}
-                  variant="history"
-                  onCopy={copyEntry}
-                  onRemove={removeEntry}
-                  onToggleFavorite={toggleFavorite}
-                  folders={folders}
-                  onAssignFolder={assignEntryToFolder}
-                />
-              ))}
-            </div>
-          </section>
+          {previousEntries.length > 0 && (
+            <section>
+              <h2>Previous</h2>
+              <div className="history-list">
+                {previousEntries.map((entry) => (
+                  <EntryButton
+                    key={entry.id}
+                    entry={entry}
+                    variant="history"
+                    onCopy={copyEntry}
+                    onRemove={removeEntry}
+                    onToggleFavorite={toggleFavorite}
+                    folders={folders}
+                    onAssignFolder={assignEntryToFolder}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+        </main>
+
+        {hasMoreBelow && (
+          <div className="scroll-hint" aria-hidden="true">
+            <span aria-hidden="true">▾</span>
+          </div>
         )}
-      </main>
+      </div>
 
       <p className={statusClassName} role="status" aria-live="polite">
         {status.message}
